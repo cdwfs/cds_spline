@@ -1,0 +1,113 @@
+For u in [0..1], a single Catmull-Rom segment is a cubic function of u
+with coefficients c0, c1, c2, and c3:
+
+    p(u) = c0 + c1*u + c2*u^2 + c3*u^3
+         = Sum(k=0..3) ck*u^k
+
+For later reference, note that the derivative of p(u) would be:
+
+   p'(u) = c1 + 2*c2*u + 3*c3*u^2
+         = Sum(k=0..3) k*ck*u^(k-1)
+
+This is a multi-dimensional function; the coefficients c0..c3 have the same
+dimensionality as the input points. The parameter u is a scalar.
+
+We choose four points that will define the curve: two endpoints, and
+the deriative of the curve at those endpoints. The derivative at a point
+pi is computed as the differnce between the two neighboring points pi-1 and
+pi+1, scaled by a tension parameter tau. Tau can take any value, but 0.5 is
+a common choice. More exteme values lead to "springier" curves.
+
+    p(0) = pi-1
+    p(1) = pi
+    p'(0) = tau * (pi - pi-2)
+    p'(1) = tau * (pi+1 - pi-1)
+
+We can now restate the coefficients c0..c3 in terms of the control points:
+
+    p(0)  = pi-1                = c0
+    p(1)  = pi                  = c0 + c1 + c2 + c3
+    p'(0) = tau * (pi - pi-2)   = c1
+    p'(1) = tau * (pi+1 - pi-1) = c1 + 2*c2 + 3*c3
+
+Eliminate c0 and c1 with substitution:
+
+    (pi - pi-1) - tau*(pi - pi-2)       = c2 + c3
+    tau*(pi+1 - pi-1) - tau*(pi - pi-2) = 2*c2 + 3*c3
+
+Solving for c2 and c3, we can now express all four coefficents purely in terms of tau and the control points:
+
+    c0 =  pi-1
+    c1 =  tau*(pi - pi-2)
+    c2 =  3*(pi - pi-1) - 2*tau*(pi   - pi-2) - tau*(pi+1 - pi-1)
+    c3 = -2*(pi - pi-1) +   tau*(pi+1 - pi-1) + tau*(pi   - pi-2)
+
+Form a basis matrix by grouping the p terms:
+
+                           [     0         1          0     0 ]   [pi-2]
+    p(u) = [1 u u^2 u^3] * [  -tau         0        tau     0 ] * [pi-1]
+                           [ 2*tau     tau-3    3-2*tau  -tau ]   [pi  ]
+                           [  -tau     2-tau      tau-2   tau ]   [p1+1]
+
+To evaluate the spline at a single point, 
+
+
+1x4 * 4x4 -> 1x4 (16 mults)
+1x4 x 4x3 -> 1x3 (12 mults)
+
+            M0 M1 M2
+           [A  B  C]
+[1 u u2 u3][D  E  F]
+           [G  H  I]
+           [J  K  L]
+
+[A*1 + D*u + G*u2 + J*u3,
+ B*1 + E*u + H*u2 + K*u3,
+ C*1 + F*u + I*u2 + L*u3]
+
+out = ([JKL]*u + [GHI])
+out = out*u + [DEF]
+out = out*u + ABC
+So, 3 MADDs per component.
+
+For a single evaluation, going wide on dimensions saves between 33% and 75% of the work (depending on dim)
+Each segment should cache [ABC], [DEF], [GHI], and [JKL].
+
+For 2D splines, 2 evaluations can be done simultaneously
+
+For "many" evaluations, it makes more sense to go wide on u (as long as you stay within a given segment).
+To evaluate at 4 u's = x, y, z, w:
+[ABCJ]
+[DEFK]
+[GHIL]
+[xyzw]
+
+[XYZW]
+[DDDD]
+The output must then be deswizzled, but boy is the throughput awesome.
+
+-------------
+
+Can a segment fit in a cache line?
+4-component: 64b matrix, 16b control point, prev/next pointer
+3-component: 48b matrix, 12b control point, prev/next pointer (2b indices?) -- doable w/64K max segments
+2-component: 32b matrix, 8b control point, prev/next pointer -- easy
+
+How about this: store an array of segment blocks -- 4 4x4 matrices followed by 4 4x control points.
+
+-------------
+
+So, linked list of segments? No, not worth it for now. Inserting/deleting points is rare enough
+that we can just expand/compact, and only recalc neighboring matrices.
+
+------------
+
+Reparameterization:
+1) compute length of each segment. Easy way: generate N sample points per segment, and sum the piecewise linear
+   distance between each pair of samples. Hard: allegedly, there's some fancy math to compute exact length of
+   a cubic function?
+2) Use the segment lengths to generate new control points evenly spaced in curve-space, possibly with a scale factor
+   to control the number of control points.
+3) Compare error against original curve (how?)
+
+In general this sounds like a more heavyweight operation.
