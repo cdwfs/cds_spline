@@ -17,80 +17,134 @@
 		<canvas id="splineCanvas" width="600" height="600"
 			    style="border:1px solid black;">
 			Canvas is not supported by your browser. WTF dude.
-		</canvas>
+		</canvas><br>
+        <label for="tauInput">Tau (tension):</label><input type="number" id="tauInput" name="tauInput" value="0.5" step="0.1"/><br>
+        <label for="alphaInput">Alpha:</label><input type="number" id="alphaInput" name="alphaInput" value="0.5" step="0.1"/><br>
+        <label for="samplesInput">Detail:</label><input type="range" id="samplesInput" name="samplesInput" min="1" max="32" value="16" step="1"/><br>
 		<script>
-         var tau = 0.8;
-         var spline = {
-             controlPoints: [
-                 {x: 0,y: 1},
-                 {x: 1,y: 0},
-                 {x: 0,y:-1},
-                 {x:-1,y: 0},
-                 {x: 0,y: 1},
-                 {x: 1,y: 0},
-                 {x: 0,y:-1}
-             ],
-             segments: [],
-         };
-         var iSeg,iSamp;
-         for(iSeg=0; iSeg<spline.controlPoints.length-3; iSeg+=1) {
-             var p0 = spline.controlPoints[iSeg+0];
-             var p1 = spline.controlPoints[iSeg+1];
-             var p2 = spline.controlPoints[iSeg+2];
-             var p3 = spline.controlPoints[iSeg+3];
-             var m = {
-                 m00: p1.x,
-                 m01: p1.y,
-                 m02: 0,
-                 m03: 0,
-                 m10: (-tau)*p0.x + (tau)*p2.x,
-                 m11: (-tau)*p0.y + (tau)*p2.y,
-                 m12: 0,
-                 m13: 0,
-                 m20: (2*tau)*p0.x + (tau-3)*p1.x + (3-2*tau)*p2.x + (-tau)*p3.x,
-                 m21: (2*tau)*p0.y + (tau-3)*p1.y + (3-2*tau)*p2.y + (-tau)*p3.y,
-                 m22: 0,
-                 m23: 0,
-                 m30: (-tau)*p0.x + (2-tau)*p1.x + (tau-2)*p2.x + (tau)*p3.x,
-                 m31: (-tau)*p0.y + (2-tau)*p1.y + (tau-2)*p2.y + (tau)*p3.y,
-                 m32: 0,
-                 m33: 0
-             }
-             spline.segments.push({
-                 geomMatrix: m
-             });
-         }
 		 var spinAngle = 0;
 		 var timeStampPrevious;
 		 function drawCanvasAnim(timeStamp) {
 			 "use strict";
 			 if (typeof timeStampPrevious === 'undefined')
-				 timeStampPrevious = timeStamp;
+			     timeStampPrevious = timeStamp;
 			 var dtSec = (timeStamp - timeStampPrevious) * 0.001;
 			 timeStampPrevious = timeStamp;
 			 
+             var tau = document.querySelector("#tauInput").value;
+             var spline = {
+                 controlPoints: [
+                     {x: -1.0,y: -0},
+                     {x: -1.01,y: -0},
+                     {x:  0.99,y:  1.0},
+                     {x:  1.0,y:  0.99},
+                     {x: -0,y: -1.01},
+                     {x: -0,y:-1.0}
+                 ],
+                 segments: [],
+             };
+             var iSeg,iSamp;
+             for(iSeg=0; iSeg<spline.controlPoints.length-3; iSeg+=1) {
+                 var p0 = spline.controlPoints[iSeg+0];
+                 var p1 = spline.controlPoints[iSeg+1];
+                 var p2 = spline.controlPoints[iSeg+2];
+                 var p3 = spline.controlPoints[iSeg+3];
+                 var m = {
+                     m00: p1.x,
+                     m01: p1.y,
+                     m02: 0,
+                     m03: 0,
+                     m10: (-tau)*p0.x + (tau)*p2.x,
+                     m11: (-tau)*p0.y + (tau)*p2.y,
+                     m12: 0,
+                     m13: 0,
+                     m20: (2*tau)*p0.x + (tau-3)*p1.x + (3-2*tau)*p2.x + (-tau)*p3.x,
+                     m21: (2*tau)*p0.y + (tau-3)*p1.y + (3-2*tau)*p2.y + (-tau)*p3.y,
+                     m22: 0,
+                     m23: 0,
+                     m30: (-tau)*p0.x + (2-tau)*p1.x + (tau-2)*p2.x + (tau)*p3.x,
+                     m31: (-tau)*p0.y + (2-tau)*p1.y + (tau-2)*p2.y + (tau)*p3.y,
+                     m32: 0,
+                     m33: 0
+                 }
+                 var alpha = document.querySelector("#alphaInput").value;
+                 var ts = [];
+                 ts[0] = 0;
+                 ts[1] = ts[0] + Math.pow( (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y), alpha*0.5 );
+                 ts[2] = ts[1] + Math.pow( (p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y), alpha*0.5 );
+                 ts[3] = ts[2] + Math.pow( (p3.x-p2.x)*(p3.x-p2.x) + (p3.y-p2.y)*(p3.y-p2.y), alpha*0.5 );
+
+                 spline.segments.push({
+                     geomMatrix: m,
+                     t: ts
+                 });
+             }
+
 			 var canvas = document.querySelector("#splineCanvas");
 			 var ctx = canvas.getContext("2d");
-             var iSeg,iSamp;
+             var samplesPerSegment = document.querySelector("#samplesInput").value;
 			 ctx.save();
 			 ctx.clearRect(0,0, canvas.width, canvas.height);
              ctx.translate(canvas.width/2, canvas.height/2);
-             ctx.scale(canvas.width/2, canvas.height/2);
-             ctx.fillStyle = "red";
-             ctx.strokeStyle = "red";
+             ctx.scale( canvas.width/4, canvas.height/4);
              ctx.lineWidth = 0.01;
-             ctx.beginPath()
+             // Standard Catmull-Rom evaluation
+             ctx.strokeStyle = "red";
              for(iSeg=0; iSeg<spline.segments.length; iSeg+=1) {
                  var m = spline.segments[iSeg].geomMatrix;
-                 for(iSamp=0; iSamp<=4; iSamp += 1) {
-                     var u = iSamp / 4;
-                     var x = ((m.m30*u + m.m20)*u + m.m10)*u + m.m00;
-                     var y = ((m.m31*u + m.m21)*u + m.m11)*u + m.m01;
-                     //ctx.fillRect(x,y,0.04,0.04);
-                     ctx.lineTo(x,y);
-                 }
+                 ctx.beginPath()
+                     for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
+                         var u = iSamp / samplesPerSegment;
+                         var x = ((m.m30*u + m.m20)*u + m.m10)*u + m.m00;
+                         var y = ((m.m31*u + m.m21)*u + m.m11)*u + m.m01;
+                         ctx.lineTo(x,y);
+                     }
+                 ctx.stroke();
              }
-             ctx.stroke();
+             // Centripetal Catmull-Rom evaluation
+             ctx.strokeStyle = "blue";
+             for(iSeg=0; iSeg<spline.segments.length; iSeg+=1) {
+                 var p0 = spline.controlPoints[iSeg+0];
+                 var p1 = spline.controlPoints[iSeg+1];
+                 var p2 = spline.controlPoints[iSeg+2];
+                 var p3 = spline.controlPoints[iSeg+3];
+                 var t0 = spline.segments[iSeg].t[0];
+                 var t1 = spline.segments[iSeg].t[1];
+                 var t2 = spline.segments[iSeg].t[2];
+                 var t3 = spline.segments[iSeg].t[3];
+                 ctx.beginPath();
+                 for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
+                     var u = iSamp / samplesPerSegment;
+                     var t = t1 + u*(t2-t1);
+                     var a1 = {
+                         x: (t1-t)*p0.x/(t1-t0) + (t-t0)*p1.x/(t1-t0),
+                         y: (t1-t)*p0.y/(t1-t0) + (t-t0)*p1.y/(t1-t0)
+                     };
+                     var a2 = {
+                         x: (t2-t)*p1.x/(t2-t1) + (t-t1)*p2.x/(t2-t1),
+                         y: (t2-t)*p1.y/(t2-t1) + (t-t1)*p2.y/(t2-t1),
+                     };
+                     var a3 = {
+                         x: (t3-t)*p2.x/(t3-t2) + (t-t2)*p3.x/(t3-t2),
+                         y: (t3-t)*p2.y/(t3-t2) + (t-t2)*p3.y/(t3-t2),
+                     };
+                     var b1 = {
+                         x: (t2-t)*a1.x/(t2-t0) + (t-t0)*a2.x/(t2-t0),
+                         y: (t2-t)*a1.y/(t2-t0) + (t-t0)*a2.y/(t2-t0),
+                     };
+                     var b2 = {
+                         x: (t3-t)*a2.x/(t3-t1) + (t-t1)*a3.x/(t3-t1),
+                         y: (t3-t)*a2.y/(t3-t1) + (t-t1)*a3.y/(t3-t1),
+                     };
+                     var c = {
+                         x: (t2-t)*b1.x/(t2-t1) + (t-t1)*b2.x/(t2-t1),
+                         y: (t2-t)*b1.y/(t2-t1) + (t-t1)*b2.y/(t2-t1),
+                     };
+                     ctx.lineTo(c.x,c.y);
+                 }
+                 ctx.stroke();
+             }
+             
 			 ctx.restore();
 			 var requestId = requestAnimationFrame(drawCanvasAnim);
 		 }
