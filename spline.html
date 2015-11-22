@@ -7,48 +7,24 @@
 		<script>
 		 function makeDoubleDelegate(f1,f2) {
 			 "use strict";
-			 return function(){
+			 return function() {
 				 if (f1) f1();
 				 if (f2) f2();
 			 }
 		 }
 		</script>
 
-		<canvas id="splineCanvas" width="600" height="600"
-			    style="border:1px solid black;">
-			Canvas is not supported by your browser. WTF dude.
-		</canvas><br>
-        <label for="tauInput">Tau (tension):</label><input type="number" id="tauInput" name="tauInput" value="0.5" step="0.1"/><br>
-        <label for="alphaInput">Alpha:</label><input type="number" id="alphaInput" name="alphaInput" value="0.5" step="0.1"/><br>
-        <label for="samplesInput">Detail:</label><input type="range" id="samplesInput" name="samplesInput" min="1" max="32" value="16" step="1"/><br>
-		<script>
-		 var spinAngle = 0;
-		 var timeStampPrevious;
-		 function drawCanvasAnim(timeStamp) {
-			 "use strict";
-			 if (typeof timeStampPrevious === 'undefined')
-			     timeStampPrevious = timeStamp;
-			 var dtSec = (timeStamp - timeStampPrevious) * 0.001;
-			 timeStampPrevious = timeStamp;
-			 
-             var tau = document.querySelector("#tauInput").value;
-             var spline = {
-                 controlPoints: [
-                     {x: -1.0,y: -0},
-                     {x: -1.01,y: -0},
-                     {x:  0.99,y:  1.0},
-                     {x:  1.0,y:  0.99},
-                     {x: -0,y: -1.01},
-                     {x: -0,y:-1.0}
-                 ],
-                 segments: [],
-             };
+        <script>
+         function makeSplineCardinal(controlPoints, tau) {
+             "use strict";
+
              var iSeg,iSamp;
-             for(iSeg=0; iSeg<spline.controlPoints.length-3; iSeg+=1) {
-                 var p0 = spline.controlPoints[iSeg+0];
-                 var p1 = spline.controlPoints[iSeg+1];
-                 var p2 = spline.controlPoints[iSeg+2];
-                 var p3 = spline.controlPoints[iSeg+3];
+             var segs = [];
+             for(iSeg=0; iSeg<controlPoints.length-3; iSeg+=1) {
+                 var p0 = controlPoints[iSeg+0];
+                 var p1 = controlPoints[iSeg+1];
+                 var p2 = controlPoints[iSeg+2];
+                 var p3 = controlPoints[iSeg+3];
                  var m = {
                      m00: p1.x,
                      m01: p1.y,
@@ -67,18 +43,131 @@
                      m32: 0,
                      m33: 0
                  }
-                 var alpha = document.querySelector("#alphaInput").value;
+                 segs.push({
+                     geomMatrix: m,
+                 });
+             }
+             
+             return {
+                 points: controlPoints,
+                 segments: segs,
+                 tau: tau,
+                 render: function(ctx, samplesPerSegment) {
+                     var iSeg,iSamp;
+                     for(iSeg=0; iSeg<segs.length; iSeg+=1) {
+                         var m = segs[iSeg].geomMatrix;
+                         ctx.beginPath()
+                             for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
+                                 var u = iSamp / samplesPerSegment;
+                                 var x = ((m.m30*u + m.m20)*u + m.m10)*u + m.m00;
+                                 var y = ((m.m31*u + m.m21)*u + m.m11)*u + m.m01;
+                                 ctx.lineTo(x,y);
+                             }
+                         ctx.stroke();
+                     }
+                 }
+             };
+         }
+
+         function makeSplineCatmullRomCentripetal(controlPoints, alpha) {
+             "use strict";
+             var iSeg,iSamp;
+             var segs = [];
+             for(iSeg=0; iSeg<controlPoints.length-3; iSeg+=1) {
+                 var p0 = controlPoints[iSeg+0];
+                 var p1 = controlPoints[iSeg+1];
+                 var p2 = controlPoints[iSeg+2];
+                 var p3 = controlPoints[iSeg+3];
                  var ts = [];
                  ts[0] = 0;
                  ts[1] = ts[0] + Math.pow( (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y), alpha*0.5 );
                  ts[2] = ts[1] + Math.pow( (p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y), alpha*0.5 );
                  ts[3] = ts[2] + Math.pow( (p3.x-p2.x)*(p3.x-p2.x) + (p3.y-p2.y)*(p3.y-p2.y), alpha*0.5 );
-
-                 spline.segments.push({
-                     geomMatrix: m,
+                 segs.push({
                      t: ts
                  });
              }
+             
+             return {
+                 points: controlPoints,
+                 segments: segs,
+                 alpha: alpha,
+                 render: function(ctx, samplesPerSegment) {
+                     var iSeg,iSamp;
+                     for(iSeg=0; iSeg<segs.length; iSeg+=1) {
+                         var p0 = controlPoints[iSeg+0];
+                         var p1 = controlPoints[iSeg+1];
+                         var p2 = controlPoints[iSeg+2];
+                         var p3 = controlPoints[iSeg+3];
+                         var t0 = segs[iSeg].t[0];
+                         var t1 = segs[iSeg].t[1];
+                         var t2 = segs[iSeg].t[2];
+                         var t3 = segs[iSeg].t[3];
+                         ctx.beginPath();
+                         for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
+                             var u = iSamp / samplesPerSegment;
+                             var t = t1 + u*(t2-t1);
+                             var a1 = {
+                                 x: (t1-t)*p0.x/(t1-t0) + (t-t0)*p1.x/(t1-t0),
+                                 y: (t1-t)*p0.y/(t1-t0) + (t-t0)*p1.y/(t1-t0)
+                             };
+                             var a2 = {
+                                 x: (t2-t)*p1.x/(t2-t1) + (t-t1)*p2.x/(t2-t1),
+                                 y: (t2-t)*p1.y/(t2-t1) + (t-t1)*p2.y/(t2-t1),
+                             };
+                             var a3 = {
+                                 x: (t3-t)*p2.x/(t3-t2) + (t-t2)*p3.x/(t3-t2),
+                                 y: (t3-t)*p2.y/(t3-t2) + (t-t2)*p3.y/(t3-t2),
+                             };
+                             var b1 = {
+                                 x: (t2-t)*a1.x/(t2-t0) + (t-t0)*a2.x/(t2-t0),
+                                 y: (t2-t)*a1.y/(t2-t0) + (t-t0)*a2.y/(t2-t0),
+                             };
+                             var b2 = {
+                                 x: (t3-t)*a2.x/(t3-t1) + (t-t1)*a3.x/(t3-t1),
+                                 y: (t3-t)*a2.y/(t3-t1) + (t-t1)*a3.y/(t3-t1),
+                             };
+                             var c = {
+                                 x: (t2-t)*b1.x/(t2-t1) + (t-t1)*b2.x/(t2-t1),
+                                 y: (t2-t)*b1.y/(t2-t1) + (t-t1)*b2.y/(t2-t1),
+                             };
+                             ctx.lineTo(c.x,c.y);
+                         }
+                         ctx.stroke();
+                     }
+                 }
+             };
+         }
+        </script>
+        
+		<canvas id="splineCanvas" width="600" height="600"
+			    style="border:1px solid black;">
+			Canvas is not supported by your browser. WTF dude.
+		</canvas><br>
+        <label for="tauInput">Tau (tension):</label><input type="number" id="tauInput" name="tauInput" value="0.5" step="0.1"/><br>
+        <label for="alphaInput">Alpha:</label><input type="number" id="alphaInput" name="alphaInput" value="0.5" step="0.1"/><br>
+        <label for="samplesInput">Detail:</label><input type="range" id="samplesInput" name="samplesInput" min="1" max="32" value="16" step="1"/><br>
+		<script>
+		 var spinAngle = 0;
+		 var timeStampPrevious;
+		 function drawCanvasAnim(timeStamp) {
+			 "use strict";
+			 if (typeof timeStampPrevious === 'undefined')
+			     timeStampPrevious = timeStamp;
+			 var dtSec = (timeStamp - timeStampPrevious) * 0.001;
+			 timeStampPrevious = timeStamp;
+			 
+             var controlPoints = [
+                 {x: -1.0, y: -0.0},
+                 {x: -1.01,y: -0.0},
+                 {x:  0.99,y:  1.0},
+                 {x:  1.0, y:  0.99},
+                 {x: -0.0, y: -1.01},
+                 {x: -0.0, y: -1.0}
+             ];
+
+             var spline1 = makeSplineCardinal(controlPoints, document.querySelector("#tauInput").value);
+             var spline2 = makeSplineCatmullRomCentripetal(controlPoints, document.querySelector("#alphaInput").value);
 
 			 var canvas = document.querySelector("#splineCanvas");
 			 var ctx = canvas.getContext("2d");
@@ -90,61 +179,11 @@
              ctx.lineWidth = 0.01;
              // Standard Catmull-Rom evaluation
              ctx.strokeStyle = "red";
-             for(iSeg=0; iSeg<spline.segments.length; iSeg+=1) {
-                 var m = spline.segments[iSeg].geomMatrix;
-                 ctx.beginPath()
-                     for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
-                         var u = iSamp / samplesPerSegment;
-                         var x = ((m.m30*u + m.m20)*u + m.m10)*u + m.m00;
-                         var y = ((m.m31*u + m.m21)*u + m.m11)*u + m.m01;
-                         ctx.lineTo(x,y);
-                     }
-                 ctx.stroke();
-             }
+             spline1.render(ctx, samplesPerSegment);
              // Centripetal Catmull-Rom evaluation
              ctx.strokeStyle = "blue";
-             for(iSeg=0; iSeg<spline.segments.length; iSeg+=1) {
-                 var p0 = spline.controlPoints[iSeg+0];
-                 var p1 = spline.controlPoints[iSeg+1];
-                 var p2 = spline.controlPoints[iSeg+2];
-                 var p3 = spline.controlPoints[iSeg+3];
-                 var t0 = spline.segments[iSeg].t[0];
-                 var t1 = spline.segments[iSeg].t[1];
-                 var t2 = spline.segments[iSeg].t[2];
-                 var t3 = spline.segments[iSeg].t[3];
-                 ctx.beginPath();
-                 for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
-                     var u = iSamp / samplesPerSegment;
-                     var t = t1 + u*(t2-t1);
-                     var a1 = {
-                         x: (t1-t)*p0.x/(t1-t0) + (t-t0)*p1.x/(t1-t0),
-                         y: (t1-t)*p0.y/(t1-t0) + (t-t0)*p1.y/(t1-t0)
-                     };
-                     var a2 = {
-                         x: (t2-t)*p1.x/(t2-t1) + (t-t1)*p2.x/(t2-t1),
-                         y: (t2-t)*p1.y/(t2-t1) + (t-t1)*p2.y/(t2-t1),
-                     };
-                     var a3 = {
-                         x: (t3-t)*p2.x/(t3-t2) + (t-t2)*p3.x/(t3-t2),
-                         y: (t3-t)*p2.y/(t3-t2) + (t-t2)*p3.y/(t3-t2),
-                     };
-                     var b1 = {
-                         x: (t2-t)*a1.x/(t2-t0) + (t-t0)*a2.x/(t2-t0),
-                         y: (t2-t)*a1.y/(t2-t0) + (t-t0)*a2.y/(t2-t0),
-                     };
-                     var b2 = {
-                         x: (t3-t)*a2.x/(t3-t1) + (t-t1)*a3.x/(t3-t1),
-                         y: (t3-t)*a2.y/(t3-t1) + (t-t1)*a3.y/(t3-t1),
-                     };
-                     var c = {
-                         x: (t2-t)*b1.x/(t2-t1) + (t-t1)*b2.x/(t2-t1),
-                         y: (t2-t)*b1.y/(t2-t1) + (t-t1)*b2.y/(t2-t1),
-                     };
-                     ctx.lineTo(c.x,c.y);
-                 }
-                 ctx.stroke();
-             }
-             
+             spline2.render(ctx, samplesPerSegment);
+
 			 ctx.restore();
 			 var requestId = requestAnimationFrame(drawCanvasAnim);
 		 }
