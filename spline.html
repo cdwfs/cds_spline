@@ -116,7 +116,60 @@
              };
          }
 
+         function makeSplineBezier(controlPointsAndTangents) {
+             "use strict";
+             var iSeg,iSamp;
+             var segs = [];
+             for(iSeg=0; iSeg<controlPointsAndTangents.length-1; iSeg+=1) {
+                 var p0 = controlPointsAndTangents[iSeg+0];
+                 var p1 = {
+                     x:controlPointsAndTangents[iSeg+0].x + controlPointsAndTangents[iSeg+0].tx,
+                     y:controlPointsAndTangents[iSeg+0].y + controlPointsAndTangents[iSeg+0].ty,
+                 };
+                 var p2 = {
+                     x:controlPointsAndTangents[iSeg+1].x - controlPointsAndTangents[iSeg+1].tx,
+                     y:controlPointsAndTangents[iSeg+1].y - controlPointsAndTangents[iSeg+1].ty,
+                 };
+                 var p3 = controlPointsAndTangents[iSeg+1];
+                 var m = {
+                     m00: p0.x,
+                     m01: p0.y,
+                     m02: 0,
+                     m03: 0,
+                     m10: (-3)*p0.x + (3*p1.x),
+                     m11: (-3)*p0.y + (3*p1.y),
+                     m12: 0,
+                     m13: 0,
+                     m20: (3)*p0.x + (-6)*p1.x + (3)*p2.x,
+                     m21: (3)*p0.y + (-6)*p1.y + (3)*p2.y,
+                     m22: 0,
+                     m23: 0,
+                     m30: (-1)*p0.x + (3)*p1.x + (-3)*p2.x + p3.x,
+                     m31: (-1)*p0.y + (3)*p1.y + (-3)*p2.y + p3.y,
+                     m32: 0,
+                     m33: 0
                  }
+                 segs.push({
+                     geomMatrix: m,
+                 });
+             }
+             
+             function eval1(u) {
+                 var uInt = u | 0, uFrac = u - uInt;
+                 if (uInt < 0 || uInt >= segs.length) {
+                     return null;
+                 }
+                 var m = segs[uInt].geomMatrix;
+                 return {
+                     x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
+                     y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01
+                 };
+             }
+
+             return {
+                 points: controlPointsAndTangents,
+                 segments: segs,
+                 eval1: eval1
              };
          }
 
@@ -238,6 +291,7 @@
              var splineC = makeSplineCardinal(controlPoints, document.querySelector("#tauInput").value);
              var splineCRC = makeSplineCatmullRomCentripetal(controlPoints, document.querySelector("#alphaInput").value);
              var splineH = makeSplineHermite(controlPointsAndTangents);
+             var splineB = makeSplineBezier(controlPointsAndTangents);
              
              function renderPoints(ctx, points) {
                  var iPt;
@@ -277,6 +331,9 @@
              renderPoints(ctx, controlPointsAndTangents);
              ctx.strokeStyle = "green";
              renderCurve(ctx, splineH, samplesPerSegment);
+             // Bezier
+             ctx.strokeStyle = "purple";
+             renderCurve(ctx, splineB, samplesPerSegment);
 
 			 ctx.restore();
 			 var requestId = requestAnimationFrame(drawCanvasAnim);
