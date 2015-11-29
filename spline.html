@@ -58,12 +58,25 @@
                      y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01
                  };
              }
+
+             function evalTangent1(u) {
+                 var uInt = u | 0, uFrac = u - uInt;
+                 if (uInt < 0 || uInt >= segs.length) {
+                     return null;
+                 }
+                 var m = segs[uInt].geomMatrix;
+                 return {
+                     x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
+                     y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11
+                 };
+             }
              
              return {
                  points: controlPoints,
                  segments: segs,
                  tau: tau,
-                 eval1: eval1
+                 eval1: eval1,
+                 evalTangent1: evalTangent1
              };
          }
 
@@ -109,10 +122,23 @@
                  };
              }
 
+             function evalTangent1(u) {
+                 var uInt = u | 0, uFrac = u - uInt;
+                 if (uInt < 0 || uInt >= segs.length) {
+                     return null;
+                 }
+                 var m = segs[uInt].geomMatrix;
+                 return {
+                     x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
+                     y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11
+                 };
+             }
+
              return {
                  points: controlPointsAndTangents,
                  segments: segs,
-                 eval1: eval1
+                 eval1: eval1,
+                 evalTangent1: evalTangent1
              };
          }
 
@@ -166,10 +192,23 @@
                  };
              }
 
+             function evalTangent1(u) {
+                 var uInt = u | 0, uFrac = u - uInt;
+                 if (uInt < 0 || uInt >= segs.length) {
+                     return null;
+                 }
+                 var m = segs[uInt].geomMatrix;
+                 return {
+                     x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
+                     y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11
+                 };
+             }
+
              return {
                  points: controlPointsAndTangents,
                  segments: segs,
-                 eval1: eval1
+                 eval1: eval1,
+                 evalTangent1: evalTangent1
              };
          }
 
@@ -264,6 +303,7 @@
         <label for="tauInput">Tau (tension):</label><input type="number" id="tauInput" name="tauInput" value="0.5" step="0.1"/><br>
         <label for="alphaInput">Alpha:</label><input type="number" id="alphaInput" name="alphaInput" value="0.5" step="0.1"/><br>
         <label for="samplesInput">Detail:</label><input type="range" id="samplesInput" name="samplesInput" min="1" max="32" value="16" step="1"/><br>
+        <input type="checkbox" id="normalizeTangentsInput" name="normalizeTangentsInput" checked="1"><label for="normalizeTangentsInput">Normalize Tangents</label><br>
 		<script>
 		 var spinAngle = 0;
 		 var timeStampPrevious;
@@ -309,6 +349,23 @@
                  ctx.lineTo(spline.points[spline.points.length-1].x, spline.points[spline.points.length-1].y);
                  ctx.stroke();
              }
+             function renderCurveTangents(ctx, spline, samplesPerSegment) {
+                 var u, du = 1 / samplesPerSegment;
+                 for(u=0; u<spline.segments.length; u+=du) {
+                     ctx.beginPath();
+                     var pt = spline.eval1(u);
+                     var tan = spline.evalTangent1(u);
+                     var tanLength;
+                     if (document.querySelector("#normalizeTangentsInput").checked) {
+                         tanLength = Math.sqrt(tan.x*tan.x + tan.y*tan.y);
+                         tan.x /= tanLength*2;
+                         tan.y /= tanLength*2;
+                     }
+                     ctx.lineTo(pt.x,pt.y);
+                     ctx.lineTo(pt.x+tan.x, pt.y+tan.y);
+                     ctx.stroke();
+                 }
+             }
              
 			 var canvas = document.querySelector("#splineCanvas");
 			 var ctx = canvas.getContext("2d");
@@ -322,18 +379,29 @@
              ctx.fillStyle = "red";
              renderPoints(ctx, controlPoints);
              ctx.strokeStyle = "red";
-             renderCurve(ctx, splineC, samplesPerSegment);
+             renderCurve(ctx, splineC, samplesPerSegment*2);
+             //ctx.strokeStyle = "pink";
+             //renderCurveTangents(ctx, splineC, samplesPerSegment);
+             
              // Centripetal Catmull-Rom
              ctx.strokeStyle = "blue";
              renderCurve(ctx, splineCRC, samplesPerSegment);
+             //ctx.strokeStyle = "cyan";
+             //renderCurveTangents(ctx, splineC, samplesPerSegment); // TODO: tangents for CRC splines?
+             
              // Hermite
              ctx.fillStyle = "green";
              renderPoints(ctx, controlPointsAndTangents);
              ctx.strokeStyle = "green";
              renderCurve(ctx, splineH, samplesPerSegment);
+             //ctx.strokeStyle = "darkgreen";
+             //renderCurveTangents(ctx, splineH, samplesPerSegment);
+             
              // Bezier
              ctx.strokeStyle = "purple";
              renderCurve(ctx, splineB, samplesPerSegment);
+             ctx.strokeStyle = "magenta";
+             renderCurveTangents(ctx, splineB, samplesPerSegment);
 
 			 ctx.restore();
 			 var requestId = requestAnimationFrame(drawCanvasAnim);
