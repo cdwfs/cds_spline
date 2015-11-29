@@ -225,11 +225,53 @@
                  var t1 = t0 + Math.pow( (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y), alpha*0.5 );
                  var t2 = t1 + Math.pow( (p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y), alpha*0.5 );
                  var t3 = t2 + Math.pow( (p3.x-p2.x)*(p3.x-p2.x) + (p3.y-p2.y)*(p3.y-p2.y), alpha*0.5 );
+
+                 // Simplification: reduce centripetal Catmull-Rom to Hermite, as described in
+                 // https://stackoverflow.com/questions/9489736/catmull-rom-curve-with-no-cusps-and-no-self-intersections/23980479#23980479
+                 // Basically, given P0,P1,P2,P3 and t0,t1,t2,t3, compute tangents at P1 and P2:
+                 //   tan1 = (P1 - P0) / (t1 - t0) - (P2 - P0) / (t2 - t0) + (P2 - P1) / (t2 - t1)
+                 //   tan2 = (P2 - P1) / (t2 - t1) - (P3 - P1) / (t3 - t1) + (P3 - P2) / (t3 - t2)
+                 // And plug into the standard Hermite basis matrix. If evaluating the segment from
+                 // P1 to P2, the tangents must be scaled by (t2-t1) to put them in the appropriate range.
+                 var tan1 = {
+                     x: (p1.x-p0.x)/(t1-t0) - (p2.x-p0.x)/(t2-t0) + (p2.x-p1.x)/(t2-t1),
+                     y: (p1.y-p0.y)/(t1-t0) - (p2.y-p0.y)/(t2-t0) + (p2.y-p1.y)/(t2-t1)
+                 };
+                 var tan2 = {
+                     x: (p2.x-p1.x)/(t2-t1) - (p3.x-p1.x)/(t3-t1) + (p3.x-p2.x) / (t3-t2),
+                     y: (p2.y-p1.y)/(t2-t1) - (p3.y-p1.y)/(t3-t1) + (p3.y-p2.y) / (t3-t2)
+                 };
+                 tan1.x *= (t2-t1);
+                 tan1.y *= (t2-t1);
+                 tan2.x *= (t2-t1);
+                 tan2.y *= (t2-t1);
+                 var m = {
+                     m00: p1.x,
+                     m01: p1.y,
+                     m02: 0,
+                     m03: 0,
+                     m10: tan1.x,
+                     m11: tan1.y,
+                     m12: 0,
+                     m13: 0,
+                     m20: (-3)*p1.x + (3)*p2.x + (-2)*tan1.x + (-1)*tan2.x,
+                     m21: (-3)*p1.y + (3)*p2.y + (-2)*tan1.y + (-1)*tan2.y,
+                     m22: 0,
+                     m23: 0,
+                     m30: (2)*p1.x + (-2)*p2.x + tan1.x + tan2.x,
+                     m31: (2)*p1.y + (-2)*p2.y + tan1.y + tan2.y,
+                     m32: 0,
+                     m33: 0
+                 }
+
                  segs.push({
+                     // reference path only
                      t0: t0,
                      t1: t1,
                      t2: t2,
-                     t3: t3
+                     t3: t3,
+                     // optimized path only
+                     geomMatrix: m
                  });
              }
              
@@ -237,6 +279,13 @@
                  var uInt = u | 0, uFrac = u - uInt;
                  if (uInt < 0 || uInt >= segs.length) {
                      return null;
+                 }
+                 if (document.querySelector("#optimizeCentripetalInput").checked) {
+                     var m = segs[uInt].geomMatrix;
+                     return {
+                         x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
+                         y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01
+                     };
                  }
                  var p0 = controlPoints[uInt+0];
                  var p1 = controlPoints[uInt+1];
@@ -287,11 +336,25 @@
                  return c;
              }
 
+             function evalTangent1(u) {
+                 // Optimized path only.
+                 var uInt = u | 0, uFrac = u - uInt;
+                 if (uInt < 0 || uInt >= segs.length) {
+                     return null;
+                 }
+                 var m = segs[uInt].geomMatrix;
+                 return {
+                     x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
+                     y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11
+                 };
+             }
+
              return {
                  points: controlPoints,
                  segments: segs,
                  alpha: alpha,
-                 eval1: eval1
+                 eval1: eval1,
+                 evalTangent1: evalTangent1
              };
          }
         </script>
@@ -304,6 +367,7 @@
         <label for="alphaInput">Alpha:</label><input type="number" id="alphaInput" name="alphaInput" value="0.5" step="0.1"/><br>
         <label for="samplesInput">Detail:</label><input type="range" id="samplesInput" name="samplesInput" min="1" max="32" value="16" step="1"/><br>
         <input type="checkbox" id="normalizeTangentsInput" name="normalizeTangentsInput" checked="1"><label for="normalizeTangentsInput">Normalize Tangents</label><br>
+        <input type="checkbox" id="optimizeCentripetalInput" name="optimizeCentripetalInput" checked="1"><label for="optimizeCentripetalInput">Optimized Centripetal Catmull-Rom</label><br>
 		<script>
 		 var spinAngle = 0;
 		 var timeStampPrevious;
@@ -328,10 +392,10 @@
                  {x: 1.0,y: 0.0,tx: 0.0,ty:-1.0},
              ];
 
-             var splineC = makeSplineCardinal(controlPoints, document.querySelector("#tauInput").value);
+             var splineC   = makeSplineCardinal(controlPoints, document.querySelector("#tauInput").value);
              var splineCRC = makeSplineCatmullRomCentripetal(controlPoints, document.querySelector("#alphaInput").value);
-             var splineH = makeSplineHermite(controlPointsAndTangents);
-             var splineB = makeSplineBezier(controlPointsAndTangents);
+             var splineH   = makeSplineHermite(controlPointsAndTangents);
+             var splineB   = makeSplineBezier(controlPointsAndTangents);
              
              function renderPoints(ctx, points) {
                  var iPt;
@@ -386,8 +450,10 @@
              // Centripetal Catmull-Rom
              ctx.strokeStyle = "blue";
              renderCurve(ctx, splineCRC, samplesPerSegment);
-             //ctx.strokeStyle = "cyan";
-             //renderCurveTangents(ctx, splineC, samplesPerSegment); // TODO: tangents for CRC splines?
+             if (document.querySelector("#optimizeCentripetalInput").checked) {
+                 ctx.strokeStyle = "cyan";
+                 renderCurveTangents(ctx, splineCRC, samplesPerSegment);
+             }
              
              // Hermite
              ctx.fillStyle = "green";
