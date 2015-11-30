@@ -37,12 +37,12 @@
 			 timeStampPrevious = timeStamp;
 			 
              var controlPoints = [
+                 {x:-2.99,y:-1.0},
                  {x:-1.0, y: 0.0},
-                 {x:-1.01,y: 0.0},
                  {x: 0.99,y: 1.0},
                  {x: 1.0, y: 0.99},
-                 {x: 0.0, y:-1.01},
-                 {x: 0.0, y:-1.0}
+                 {x: 0.0, y:-1.0},
+                 {x:-1.0, y:-2.99}
              ];
              var controlPointsAndTangents = [
                  {x:-1.0,y: 0.0,tx: 0.0,ty: 1.0},
@@ -65,18 +65,17 @@
                  var iSeg, iSamp;
                  ctx.beginPath();
                  for(iSeg=0; iSeg<spline.segments.length; iSeg += 1) {
-                     for(iSamp=0; iSamp<samplesPerSegment; iSamp += 1) {
+                     for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
                          var pt = spline.eval1(iSeg + iSamp/samplesPerSegment);
                          ctx.lineTo(pt.x, pt.y);
                      }
                  }
-                 ctx.lineTo(spline.points[spline.points.length-1].x, spline.points[spline.points.length-1].y);
                  ctx.stroke();
              }
              function renderCurveTangents(ctx, spline, samplesPerSegment) {
                  var iSeg, iSamp;
                  for(iSeg=0; iSeg<spline.segments.length; iSeg += 1) {
-                     for(iSamp=0; iSamp<samplesPerSegment; iSamp += 1) {
+                     for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
                          ctx.beginPath();
                          var u = iSeg + iSamp/samplesPerSegment;
                          var pt = spline.eval1(u);
@@ -92,9 +91,6 @@
                          ctx.stroke();
                      }
                  }
-                 ctx.beginPath();
-                 
-                 ctx.stroke();
              }
              
 			 var canvas = document.querySelector("#splineCanvas");
@@ -111,8 +107,8 @@
              ctx.strokeStyle = "red";
              renderCurve(ctx, splineC, samplesPerSegment*2);
              if (document.querySelector("#showTangentsInput").checked) {
-                 //ctx.strokeStyle = "pink";
-                 //renderCurveTangents(ctx, splineC, samplesPerSegment);
+                 ctx.strokeStyle = "pink";
+                 renderCurveTangents(ctx, splineC, samplesPerSegment);
              }
              
              // Centripetal Catmull-Rom
@@ -130,7 +126,7 @@
              ctx.strokeStyle = "green";
              renderCurve(ctx, splineH, samplesPerSegment);
              if (document.querySelector("#showTangentsInput").checked) {
-                 //ctx.strokeStyle = "darkgreen";
+                 ctx.strokeStyle = "darkgreen";
                  //renderCurveTangents(ctx, splineH, samplesPerSegment);
              }
              
@@ -138,7 +134,7 @@
              ctx.strokeStyle = "purple";
              renderCurve(ctx, splineB, samplesPerSegment);
              if (document.querySelector("#showTangentsInput").checked) {
-                 ctx.strokeStyle = "magenta";
+                 ctx.strokeStyle = "violet";
                  renderCurveTangents(ctx, splineB, samplesPerSegment);
              }
 

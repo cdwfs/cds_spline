@@ -15,6 +15,11 @@
 
 var SPLINE = function() {
     "use strict";
+
+    function clamp(x, xMin, xMax) {
+        return (x<xMin) ? xMin : ( (x>xMax) ? xMax : x );
+    }
+
     function makeSplineCardinal(controlPoints, tau) {
         var iSeg,iSamp;
         var segs = [];
@@ -47,9 +52,11 @@ var SPLINE = function() {
         }
 
         function eval1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -59,9 +66,11 @@ var SPLINE = function() {
         }
 
         function evalTangent1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -109,9 +118,11 @@ var SPLINE = function() {
         }
         
         function eval1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -121,9 +132,11 @@ var SPLINE = function() {
         }
 
         function evalTangent1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -178,9 +191,11 @@ var SPLINE = function() {
         }
         
         function eval1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -190,9 +205,11 @@ var SPLINE = function() {
         }
 
         function evalTangent1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -266,9 +283,11 @@ var SPLINE = function() {
         }
         
         function eval1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
@@ -278,9 +297,11 @@ var SPLINE = function() {
         }
 
         function evalTangent1(u) {
-            var uInt = u | 0, uFrac = u - uInt;
-            if (uInt < 0 || uInt >= segs.length) {
-                return null;
+            var uClamp = clamp(u, 0, segs.length);
+            var uInt = uClamp | 0, uFrac = uClamp - uInt;
+            if (uClamp === segs.length) {
+                uInt  = uInt-1;
+                uFrac = 1.0;
             }
             var m = segs[uInt].geomMatrix;
             return {
