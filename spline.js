@@ -4,7 +4,6 @@
    , forin: true
    , freeze: true
    , latedef: true
-   , newcap: true
    , noarg: true
    , undef: true
    , plusplus: true
@@ -16,11 +15,45 @@
 var SPLINE = function() {
     "use strict";
 
-    function clamp(x, xMin, xMax) {
+    function _clamp(x, xMin, xMax) {
         return (x<xMin) ? xMin : ( (x>xMax) ? xMax : x );
     }
+    
+    function _eval1(spline, u) {
+        var uClamp = _clamp(u, 0, spline.segments.length);
+        var uInt = uClamp | 0, uFrac = uClamp - uInt;
+        if (uClamp === spline.segments.length) {
+            uInt  = uInt-1;
+            uFrac = 1.0;
+        }
+        var m = spline.segments[uInt].geomMatrix;
+        return {
+            x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
+            y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01,
+            z: ((m.m32*uFrac + m.m22)*uFrac + m.m12)*uFrac + m.m02,
+            w: ((m.m33*uFrac + m.m23)*uFrac + m.m13)*uFrac + m.m03
+        };
+    }
+    
+    function _evalTangent1(spline, u) {
+        var uClamp = _clamp(u, 0, spline.segments.length);
+        var uInt = uClamp | 0, uFrac = uClamp - uInt;
+        if (uClamp === spline.segments.length) {
+            uInt  = uInt-1;
+            uFrac = 1.0;
+        }
+        var m = spline.segments[uInt].geomMatrix;
+        return {
+            x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
+            y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11,
+            z: (3*m.m32*uFrac + 2*m.m22)*uFrac + m.m12,
+            w: (3*m.m33*uFrac + 2*m.m23)*uFrac + m.m13,
+        };
+    }
+        
 
     function makeSplineCardinal(controlPoints, tau) {
+        if (typeof(tau) === 'undefined') tau = 0.5;
         var iSeg,iSamp;
         var segs = [];
         for(iSeg=0; iSeg<controlPoints.length-3; iSeg+=1) {
@@ -55,44 +88,12 @@ var SPLINE = function() {
             });
         }
 
-        function eval1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
-                y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01,
-                z: ((m.m32*uFrac + m.m22)*uFrac + m.m12)*uFrac + m.m02,
-                w: ((m.m33*uFrac + m.m23)*uFrac + m.m13)*uFrac + m.m03
-            };
-        }
-
-        function evalTangent1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
-                y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11,
-                z: (3*m.m32*uFrac + 2*m.m22)*uFrac + m.m12,
-                w: (3*m.m33*uFrac + 2*m.m23)*uFrac + m.m13,
-            };
-        }
-        
         return {
             points: controlPoints,
             segments: segs,
             tau: tau,
-            eval1: eval1,
-            evalTangent1: evalTangent1
+            eval1:        function(u) { return _eval1(this, u); },
+            evalTangent1: function(u) { return _evalTangent1(this, u); },
         };
     }
 
@@ -129,43 +130,11 @@ var SPLINE = function() {
             });
         }
         
-        function eval1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
-                y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01,
-                z: ((m.m32*uFrac + m.m22)*uFrac + m.m12)*uFrac + m.m02,
-                w: ((m.m33*uFrac + m.m23)*uFrac + m.m13)*uFrac + m.m03,
-            };
-        }
-
-        function evalTangent1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
-                y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11,
-                z: (3*m.m32*uFrac + 2*m.m22)*uFrac + m.m12,
-                w: (3*m.m33*uFrac + 2*m.m23)*uFrac + m.m13,
-            };
-        }
-
         return {
             points: controlPointsAndTangents,
             segments: segs,
-            eval1: eval1,
-            evalTangent1: evalTangent1
+            eval1:        function(u) { return _eval1(this, u); },
+            evalTangent1: function(u) { return _evalTangent1(this, u); },
         };
     }
 
@@ -214,47 +183,16 @@ var SPLINE = function() {
             });
         }
       
-        function eval1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
-                y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01,
-                z: ((m.m32*uFrac + m.m22)*uFrac + m.m12)*uFrac + m.m02,
-                w: ((m.m33*uFrac + m.m23)*uFrac + m.m13)*uFrac + m.m03,
-            };
-        }
-
-        function evalTangent1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
-                y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11,
-                z: (3*m.m32*uFrac + 2*m.m22)*uFrac + m.m12,
-                w: (3*m.m33*uFrac + 2*m.m23)*uFrac + m.m13,
-            };
-        }
-
         return {
             points: controlPointsAndTangents,
             segments: segs,
-            eval1: eval1,
-            evalTangent1: evalTangent1
+            eval1:        function(u) { return _eval1(this, u); },
+            evalTangent1: function(u) { return _evalTangent1(this, u); },
         };
     }
 
     function makeSplineCatmullRomCentripetal(controlPoints, alpha) {
+        if (typeof(alpha) === 'undefined') alpha = 0.5;
         var iSeg,iSamp;
         var segs = [];
         for(iSeg=0; iSeg<controlPoints.length-3; iSeg+=1) {
@@ -334,44 +272,12 @@ var SPLINE = function() {
             });
         }
         
-        function eval1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: ((m.m30*uFrac + m.m20)*uFrac + m.m10)*uFrac + m.m00,
-                y: ((m.m31*uFrac + m.m21)*uFrac + m.m11)*uFrac + m.m01,
-                z: ((m.m32*uFrac + m.m22)*uFrac + m.m12)*uFrac + m.m02,
-                w: ((m.m33*uFrac + m.m23)*uFrac + m.m13)*uFrac + m.m03,
-            };
-        }
-
-        function evalTangent1(u) {
-            var uClamp = clamp(u, 0, segs.length);
-            var uInt = uClamp | 0, uFrac = uClamp - uInt;
-            if (uClamp === segs.length) {
-                uInt  = uInt-1;
-                uFrac = 1.0;
-            }
-            var m = segs[uInt].geomMatrix;
-            return {
-                x: (3*m.m30*uFrac + 2*m.m20)*uFrac + m.m10,
-                y: (3*m.m31*uFrac + 2*m.m21)*uFrac + m.m11,
-                z: (3*m.m32*uFrac + 2*m.m22)*uFrac + m.m12,
-                w: (3*m.m33*uFrac + 2*m.m23)*uFrac + m.m13,
-            };
-        }
-
         return {
             points: controlPoints,
             segments: segs,
             alpha: alpha,
-            eval1: eval1,
-            evalTangent1: evalTangent1
+            eval1: function(u) { return _eval1(this, u); },
+            evalTangent1: function(u) { return _evalTangent1(this, u); },
         };
     }
 
