@@ -157,7 +157,7 @@ var procGeomScene = function() {
 		    cameraRot: 0,
 	    };
 	    var gui = new dat.GUI();
-	    gui.add(tweakables, 'cameraRot', 0, 90);
+	    gui.add(tweakables, 'cameraRot', 0, 360);
         
 	    document.body.appendChild(renderer.domElement);
         
@@ -168,7 +168,7 @@ var procGeomScene = function() {
 		var timeSec = Date.now() * 0.001;
 
 		var cameraRotRads = tweakables.cameraRot * 2.0 * Math.PI / 360;
-		camera.position.set( 3*Math.sin(cameraRotRads), 0, 3*Math.cos(cameraRotRads) );
+		camera.position.set( 5*Math.sin(cameraRotRads), 0, 5*Math.cos(cameraRotRads) );
 		camera.lookAt(scene.position);
 
 		stats.update();
