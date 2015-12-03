@@ -84,8 +84,10 @@ var procGeomScene = function() {
             p2 = knots[iSeg+2];
             // Rough heuristic: distance between segments -> number of rings per segment
             segLength = Math.sqrt( (p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y) + (p2.z-p1.z)*(p2.z-p1.z) );
-            ringsPerSegment = segLength * 20; // tune this!
-            for(iRing=0; iRing<ringsPerSegment; iRing += 1) {
+            ringsPerSegment = Math.floor(segLength * 10); // tune this!
+            for(iRing=0; iRing<=ringsPerSegment; iRing += 1) {
+                if (iRing === ringsPerSegment && iSeg < segmentCount-1)
+                    continue;
                 t = iSeg + iRing/ringsPerSegment;
                 ringCenter = _toVec3( spline.eval1(t) );
                 tangent = _toVec3( spline.evalTangent1(t) ).normalize();
