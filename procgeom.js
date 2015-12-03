@@ -29,17 +29,9 @@ var procGeomScene = function() {
         return new THREE.Vector3(p.x, p.y, p.z);
     }
 	
-    var _unitXAxis = new THREE.Vector3(1,0,0);
     function _computeNormals(unitTangent, oldUnitNormal) {
-        var uNormal, uBinormal;
-        if (unitTangent.clone().dot(_unitXAxis) === 1) {
-            // cross product is undefined; use previous normal vector instead to break ties.
-            uBinormal = unitTangent.clone().cross(oldUnitNormal);
-            uNormal = uBinormal.clone().cross(unitTangent);
-        } else {
-            uNormal = unitTangent.clone().cross(_unitXAxis).normalize();
-            uBinormal = unitTangent.clone().cross(uNormal).normalize();
-        }
+        var uBinormal = unitTangent.clone().cross(oldUnitNormal).normalize();
+        var uNormal = uBinormal.clone().cross(unitTangent).normalize();
         return {
             unitNormal: uNormal,
             unitBinormal: uBinormal,
