@@ -25,7 +25,6 @@
         <label for="samplesInput">Detail:</label><input type="range" id="samplesInput" name="samplesInput" min="1" max="32" value="16" step="1"/><br>
         <input type="checkbox" id="showTangentsInput" name="showTangentsInput"><label for="showTangentsInput">Show Tangents</label><br>
         <input type="checkbox" id="normalizeTangentsInput" name="normalizeTangentsInput" checked><label for="normalizeTangentsInput">Normalize Tangents</label><br>
-        <input type="checkbox" id="optimizeCentripetalInput" name="optimizeCentripetalInput" checked><label for="optimizeCentripetalInput">Optimized Centripetal Catmull-Rom</label><br>
 		<script>
 		 var spinAngle = 0;
 		 var timeStampPrevious;
@@ -61,6 +60,7 @@
                      ctx.fillRect(points[iPt].x-.02, points[iPt].y-.02, .04, .04);
                  }
              }
+
              function renderCurve(ctx, spline, samplesPerSegment) {
                  var iSeg, iSamp;
                  ctx.beginPath();
@@ -72,6 +72,7 @@
                  }
                  ctx.stroke();
              }
+
              function renderCurveTangents(ctx, spline, samplesPerSegment) {
                  var iSeg, iSamp;
                  for(iSeg=0; iSeg<spline.segments.length; iSeg += 1) {
@@ -114,10 +115,9 @@
              // Centripetal Catmull-Rom
              ctx.strokeStyle = "blue";
              renderCurve(ctx, splineCRC, samplesPerSegment);
-             if (document.querySelector("#showTangentsInput").checked && 
-                 document.querySelector("#optimizeCentripetalInput").checked) {
-                     ctx.strokeStyle = "cyan";
-                     renderCurveTangents(ctx, splineCRC, samplesPerSegment);
+             if (document.querySelector("#showTangentsInput").checked) {
+                 ctx.strokeStyle = "cyan";
+                 renderCurveTangents(ctx, splineCRC, samplesPerSegment);
              }
              
              // Hermite
