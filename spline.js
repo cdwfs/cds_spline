@@ -19,6 +19,17 @@ var SPLINE = function() {
         return (x<xMin) ? xMin : ( (x>xMax) ? xMax : x );
     }
     
+    function _cross2(a, b) {
+        return a.x*b.y - a.y*b.x;
+    }
+    function _cross3(a, b) {
+        return {
+            x: a.y*b.z - a.z*b.y,
+            y: a.z*b.x - a.x*b.z,
+            z: a.x*b.y - a.y*b.x,
+        };
+    }
+
     function _eval1(spline, u) {
         var uClamp = _clamp(u, 0, spline.segments.length);
         var uInt = uClamp | 0, uFrac = uClamp - uInt;
@@ -67,6 +78,12 @@ var SPLINE = function() {
         };
     }
     
+    function _evalCurvatureRadius2d(tan, dtan) {
+        return Math.pow(tan.x*tan.x + tan.y*tan.y, 1.5) / Math.abs( _cross2(tan, dtan) ) ;
+    }
+    function _evalCurvatureRadius3d(tan, dtan) {
+        return Math.pow(tan.x*tan.x + tan.y*tan.y + tan.z*tan.z, 1.5) / Math.abs( _cross3(tan, dtan) );
+    }
 
     function makeSplineCardinal(controlPoints, tau) {
         if (typeof(tau) === 'undefined') tau = 0.5;
@@ -111,6 +128,8 @@ var SPLINE = function() {
             eval1:        function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
             evalDTangent1: function(u) { return _evalDTangent1(this, u); },
+            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
+            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
         };
     }
 
@@ -153,6 +172,8 @@ var SPLINE = function() {
             eval1:        function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
             evalDTangent1: function(u) { return _evalDTangent1(this, u); },
+            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
+            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
         };
     }
 
@@ -207,6 +228,8 @@ var SPLINE = function() {
             eval1:        function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
             evalDTangent1: function(u) { return _evalDTangent1(this, u); },
+            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
+            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
         };
     }
 
@@ -298,6 +321,8 @@ var SPLINE = function() {
             eval1: function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
             evalDTangent1: function(u) { return _evalDTangent1(this, u); },
+            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
+            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
         };
     }
 

@@ -93,6 +93,30 @@
                      }
                  }
              }
+
+             function renderCurveCurvature(ctx, spline, samplesPerSegment) {
+                 var iSeg, iSamp;
+                 for(iSeg=0; iSeg<spline.segments.length; iSeg += 1) {
+                     for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
+                         var u = iSeg + iSamp/samplesPerSegment;
+                         var pt = spline.eval1(u);
+                         var tan = spline.evalTangent1(u);
+                         var dtan = spline.evalDTangent1(u);
+                         var curvRad = spline.evalCurvatureRadius2d(tan, dtan);
+                         var tanLength = Math.sqrt(tan.x*tan.x + tan.y*tan.y);
+                         var norm = {
+                             x:  tan.y * curvRad / tanLength,
+                             y: -tan.x * curvRad / tanLength,
+                         }
+                         ctx.beginPath();
+                         ctx.lineTo(pt.x,pt.y);
+                         ctx.lineTo(pt.x+norm.x, pt.y+norm.y);
+                         ctx.stroke();
+                         //ctx.fillRect(pt.x + norm.x - 0.01, pt.y + norm.y - 0.01, 0.02, 0.02);
+                         //ctx.fillRect(pt.x - norm.x - 0.01, pt.y - norm.y - 0.01, 0.02, 0.02);
+                     }
+                 }
+             }
              
 			 var canvas = document.querySelector("#splineCanvas");
 			 var ctx = canvas.getContext("2d");
@@ -119,6 +143,8 @@
                  ctx.strokeStyle = "cyan";
                  renderCurveTangents(ctx, splineCRC, samplesPerSegment);
              }
+             ctx.fillStyle = "cyan";
+             //renderCurveCurvature(ctx, splineCRC, samplesPerSegment);
              
              // Hermite
              ctx.fillStyle = "green";
@@ -129,6 +155,8 @@
                  ctx.strokeStyle = "darkgreen";
                  //renderCurveTangents(ctx, splineH, samplesPerSegment);
              }
+             ctx.fillStyle = "green";
+             //renderCurveCurvature(ctx, splineH, samplesPerSegment);
              
              // Bezier
              ctx.strokeStyle = "purple";
@@ -137,6 +165,8 @@
                  ctx.strokeStyle = "violet";
                  renderCurveTangents(ctx, splineB, samplesPerSegment);
              }
+             ctx.fillStyle = "violet";
+             renderCurveCurvature(ctx, splineB, samplesPerSegment);
 
 			 ctx.restore();
 			 var requestId = requestAnimationFrame(drawCanvasAnim);
