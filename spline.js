@@ -50,7 +50,23 @@ var SPLINE = function() {
             w: (3*m.m33*uFrac + 2*m.m23)*uFrac + m.m13,
         };
     }
-        
+
+    function _evalDTangent1(spline, u) {
+        var uClamp = _clamp(u, 0, spline.segments.length);
+        var uInt = uClamp | 0, uFrac = uClamp - uInt;
+        if (uClamp === spline.segments.length) {
+            uInt  = uInt-1;
+            uFrac = 1.0;
+        }
+        var m = spline.segments[uInt].geomMatrix;
+        return {
+            x: 6*m.m30*uFrac + 2*m.m20,
+            y: 6*m.m31*uFrac + 2*m.m21,
+            z: 6*m.m32*uFrac + 2*m.m22,
+            w: 6*m.m33*uFrac + 2*m.m23,
+        };
+    }
+    
 
     function makeSplineCardinal(controlPoints, tau) {
         if (typeof(tau) === 'undefined') tau = 0.5;
@@ -94,6 +110,7 @@ var SPLINE = function() {
             tau: tau,
             eval1:        function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
+            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
         };
     }
 
@@ -135,6 +152,7 @@ var SPLINE = function() {
             segments: segs,
             eval1:        function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
+            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
         };
     }
 
@@ -188,6 +206,7 @@ var SPLINE = function() {
             segments: segs,
             eval1:        function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
+            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
         };
     }
 
@@ -278,6 +297,7 @@ var SPLINE = function() {
             alpha: alpha,
             eval1: function(u) { return _eval1(this, u); },
             evalTangent1: function(u) { return _evalTangent1(this, u); },
+            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
         };
     }
 
