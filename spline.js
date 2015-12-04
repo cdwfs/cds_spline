@@ -77,12 +77,13 @@ var SPLINE = function() {
             w: 6*m.m33*uFrac + 2*m.m23,
         };
     }
-    
+
     function _evalCurvatureRadius2d(tan, dtan) {
         return Math.pow(tan.x*tan.x + tan.y*tan.y, 1.5) / Math.abs( _cross2(tan, dtan) ) ;
     }
     function _evalCurvatureRadius3d(tan, dtan) {
-        return Math.pow(tan.x*tan.x + tan.y*tan.y + tan.z*tan.z, 1.5) / Math.abs( _cross3(tan, dtan) );
+        var c = _cross3(tan, dtan);
+        return Math.pow(tan.x*tan.x + tan.y*tan.y + tan.z*tan.z, 1.5) / Math.sqrt(c.x*c.x + c.y*c.y * c.z*c.z);
     }
 
     function makeSplineCardinal(controlPoints, tau) {
