@@ -140,9 +140,9 @@ var SPLINE = function() {
         for(iSeg=0; iSeg<controlPointsAndTangents.length-1; iSeg+=1) {
             var p0 = controlPointsAndTangents[iSeg+0];
             var p1 = controlPointsAndTangents[iSeg+1];
-            p0 = {  x: p0.x  || 0,  y: p0.y  || 0,  z: p0.z  || 0,  w: p0.w || 0,
+            p0 = {  x: p0.x  || 0,  y: p0.y  || 0,  z: p0.z  || 0,  w: p0.w  || 0,
                    tx: p0.tx || 0, ty: p0.ty || 0, tz: p0.tz || 0, tw: p0.tw || 0 };
-            p1 = {  x: p1.x  || 0,  y: p1.y  || 0,  z: p1.z  || 0,  w: p1.w || 0,
+            p1 = {  x: p1.x  || 0,  y: p1.y  || 0,  z: p1.z  || 0,  w: p1.w  || 0,
                    tx: p1.tx || 0, ty: p1.ty || 0, tz: p1.tz || 0, tw: p1.tw || 0 };
             var m = {
                 m00: p0.x,
@@ -205,18 +205,18 @@ var SPLINE = function() {
                 m01: p0.y,
                 m02: p0.z,
                 m03: p0.w,
-                m10: (-3)*p0.x + (3*p1.x),
-                m11: (-3)*p0.y + (3*p1.y),
-                m12: (-3)*p0.z + (3*p1.z),
-                m13: (-3)*p0.w + (3*p1.w),
-                m20: (3)*p0.x + (-6)*p1.x + (3)*p2.x,
-                m21: (3)*p0.y + (-6)*p1.y + (3)*p2.y,
-                m22: (3)*p0.z + (-6)*p1.z + (3)*p2.z,
-                m23: (3)*p0.w + (-6)*p1.w + (3)*p2.w,
-                m30: (-1)*p0.x + (3)*p1.x + (-3)*p2.x + p3.x,
-                m31: (-1)*p0.y + (3)*p1.y + (-3)*p2.y + p3.y,
-                m32: (-1)*p0.z + (3)*p1.w + (-3)*p2.z + p3.z,
-                m33: (-1)*p0.w + (3)*p1.w + (-3)*p2.w + p3.w,
+                m10: (-3)*p0.x + ( 3)*p1.x,
+                m11: (-3)*p0.y + ( 3)*p1.y,
+                m12: (-3)*p0.z + ( 3)*p1.z,
+                m13: (-3)*p0.w + ( 3)*p1.w,
+                m20: ( 3)*p0.x + (-6)*p1.x + ( 3)*p2.x,
+                m21: ( 3)*p0.y + (-6)*p1.y + ( 3)*p2.y,
+                m22: ( 3)*p0.z + (-6)*p1.z + ( 3)*p2.z,
+                m23: ( 3)*p0.w + (-6)*p1.w + ( 3)*p2.w,
+                m30: (-1)*p0.x + ( 3)*p1.x + (-3)*p2.x + p3.x,
+                m31: (-1)*p0.y + ( 3)*p1.y + (-3)*p2.y + p3.y,
+                m32: (-1)*p0.z + ( 3)*p1.z + (-3)*p2.z + p3.z,
+                m33: (-1)*p0.w + ( 3)*p1.w + (-3)*p2.w + p3.w,
             };
             segs.push({
                 geomMatrix: m,
