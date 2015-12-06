@@ -30,7 +30,7 @@ var SPLINE = function() {
         };
     }
 
-    function _eval1(spline, u) {
+    function _evalPos(spline, u) {
         var uClamp = _clamp(u, 0, spline.segments.length);
         var uInt = uClamp | 0, uFrac = uClamp - uInt;
         if (uClamp === spline.segments.length) {
@@ -46,7 +46,7 @@ var SPLINE = function() {
         };
     }
     
-    function _evalTangent1(spline, u) {
+    function _evalDPos(spline, u) {
         var uClamp = _clamp(u, 0, spline.segments.length);
         var uInt = uClamp | 0, uFrac = uClamp - uInt;
         if (uClamp === spline.segments.length) {
@@ -62,7 +62,7 @@ var SPLINE = function() {
         };
     }
 
-    function _evalDTangent1(spline, u) {
+    function _evalDDPos(spline, u) {
         var uClamp = _clamp(u, 0, spline.segments.length);
         var uInt = uClamp | 0, uFrac = uClamp - uInt;
         if (uClamp === spline.segments.length) {
@@ -78,12 +78,12 @@ var SPLINE = function() {
         };
     }
 
-    function _evalCurvatureRadius2d(tan, dtan) {
-        return Math.pow(tan.x*tan.x + tan.y*tan.y, 1.5) / Math.abs( _cross2(tan, dtan) ) ;
+    function _evalCurvature2(tan, dtan) {
+        return Math.abs( _cross2(tan, dtan) ) / Math.pow(tan.x*tan.x + tan.y*tan.y, 1.5) ;
     }
-    function _evalCurvatureRadius3d(tan, dtan) {
+    function _evalCurvature3(tan, dtan) {
         var c = _cross3(tan, dtan);
-        return Math.pow(tan.x*tan.x + tan.y*tan.y + tan.z*tan.z, 1.5) / Math.sqrt(c.x*c.x + c.y*c.y * c.z*c.z);
+        return Math.sqrt(c.x*c.x + c.y*c.y * c.z*c.z) / Math.pow(tan.x*tan.x + tan.y*tan.y + tan.z*tan.z, 1.5);
     }
 
     function makeSplineCardinal(controlPoints, tau) {
@@ -126,11 +126,11 @@ var SPLINE = function() {
             points: controlPoints,
             segments: segs,
             tau: tau,
-            eval1:        function(u) { return _eval1(this, u); },
-            evalTangent1: function(u) { return _evalTangent1(this, u); },
-            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
-            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
-            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
+            evalPos:   function(u) { return _evalPos(this, u); },
+            evalDPos:  function(u) { return _evalDPos(this, u); },
+            evalDDPos: function(u) { return _evalDDPos(this, u); },
+            evalCurvature2: function(dpos, ddpos) { return _evalCurvature2(dpos, ddpos); },
+            evalCurvature3: function(dpos, ddpos) { return _evalCurvature3(dpos, ddpos); },
         };
     }
 
@@ -170,11 +170,11 @@ var SPLINE = function() {
         return {
             points: controlPointsAndTangents,
             segments: segs,
-            eval1:        function(u) { return _eval1(this, u); },
-            evalTangent1: function(u) { return _evalTangent1(this, u); },
-            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
-            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
-            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
+            evalPos:   function(u) { return _evalPos(this, u); },
+            evalDPos:  function(u) { return _evalDPos(this, u); },
+            evalDDPos: function(u) { return _evalDDPos(this, u); },
+            evalCurvature2: function(dpos, ddpos) { return _evalCurvature2(dpos, ddpos); },
+            evalCurvature3: function(dpos, ddpos) { return _evalCurvature3(dpos, ddpos); },
         };
     }
 
@@ -226,11 +226,11 @@ var SPLINE = function() {
         return {
             points: controlPointsAndTangents,
             segments: segs,
-            eval1:        function(u) { return _eval1(this, u); },
-            evalTangent1: function(u) { return _evalTangent1(this, u); },
-            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
-            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
-            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
+            evalPos:   function(u) { return _evalPos(this, u); },
+            evalDPos:  function(u) { return _evalDPos(this, u); },
+            evalDDPos: function(u) { return _evalDDPos(this, u); },
+            evalCurvature2: function(dpos, ddpos) { return _evalCurvature2(dpos, ddpos); },
+            evalCurvature3: function(dpos, ddpos) { return _evalCurvature3(dpos, ddpos); },
         };
     }
 
@@ -319,11 +319,11 @@ var SPLINE = function() {
             points: controlPoints,
             segments: segs,
             alpha: alpha,
-            eval1: function(u) { return _eval1(this, u); },
-            evalTangent1: function(u) { return _evalTangent1(this, u); },
-            evalDTangent1: function(u) { return _evalDTangent1(this, u); },
-            evalCurvatureRadius2d: function(tan, dtan) { return _evalCurvatureRadius2d(tan, dtan); },
-            evalCurvatureRadius3d: function(tan, dtan) { return _evalCurvatureRadius3d(tan, dtan); },
+            evalPos:   function(u) { return _evalPos(this, u); },
+            evalDPos:  function(u) { return _evalDPos(this, u); },
+            evalDDPos: function(u) { return _evalDDPos(this, u); },
+            evalCurvature2: function(dpos, ddpos) { return _evalCurvature2(dpos, ddpos); },
+            evalCurvature3: function(dpos, ddpos) { return _evalCurvature3(dpos, ddpos); },
         };
     }
 

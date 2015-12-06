@@ -81,8 +81,8 @@ var procGeomScene = function() {
                 if (iRing === ringsPerSegment && iSeg < segmentCount-1)
                     continue;
                 t = iSeg + iRing/ringsPerSegment;
-                ringCenter = _toVec3( spline.eval1(t) );
-                tangent = _toVec3( spline.evalTangent1(t) ).normalize();
+                ringCenter = _toVec3( spline.evalPos(t) );
+                tangent = _toVec3( spline.evalDPos(t) ).normalize();
                 normals = _computeNormals(tangent, lastUnitNormal);
                 lastUnitNormal = normals.unitNormal;
                 for(iVert=0; iVert<vertsPerRing; iVert += 1) {

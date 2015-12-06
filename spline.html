@@ -66,7 +66,7 @@
                  ctx.beginPath();
                  for(iSeg=0; iSeg<spline.segments.length; iSeg += 1) {
                      for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
-                         var pt = spline.eval1(iSeg + iSamp/samplesPerSegment);
+                         var pt = spline.evalPos(iSeg + iSamp/samplesPerSegment);
                          ctx.lineTo(pt.x, pt.y);
                      }
                  }
@@ -79,8 +79,8 @@
                      for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
                          ctx.beginPath();
                          var u = iSeg + iSamp/samplesPerSegment;
-                         var pt = spline.eval1(u);
-                         var tan = spline.evalTangent1(u);
+                         var pt = spline.evalPos(u);
+                         var tan = spline.evalDPos(u);
                          var tanLength;
                          if (document.querySelector("#normalizeTangentsInput").checked) {
                              tanLength = Math.sqrt(tan.x*tan.x + tan.y*tan.y);
@@ -99,10 +99,10 @@
                  for(iSeg=0; iSeg<spline.segments.length; iSeg += 1) {
                      for(iSamp=0; iSamp<=samplesPerSegment; iSamp += 1) {
                          var u = iSeg + iSamp/samplesPerSegment;
-                         var pt = spline.eval1(u);
-                         var tan = spline.evalTangent1(u);
-                         var dtan = spline.evalDTangent1(u);
-                         var curvRad = spline.evalCurvatureRadius2d(tan, dtan);
+                         var pt = spline.evalPos(u);
+                         var tan = spline.evalDPos(u);
+                         var dtan = spline.evalDDPos(u);
+                         var curvRad = 1 / spline.evalCurvature2(tan, dtan);
                          var tanLength = Math.sqrt(tan.x*tan.x + tan.y*tan.y);
                          var norm = {
                              x:  tan.y * curvRad / tanLength,
