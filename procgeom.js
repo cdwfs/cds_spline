@@ -41,7 +41,7 @@ var procGeomScene = function() {
 	function makeProcGeom() {
 		var iVert, iSeg, iKnot, iRing;
         var knots = [];
-        var knotCount = Math.floor(10 + 5*Math.random());
+        var knotCount = Math.floor(5 + 5*Math.random());
         var segmentCount;
         var spline;
         var ringsPerSegment;
@@ -49,7 +49,7 @@ var procGeomScene = function() {
         var tangent, normals;
         var lastUnitNormal = new THREE.Vector3(0,1,0);
         var vertsPerRing = 36;
-        var ringRadius = 0.15;
+        var ringRadius;
         var vert;
         var geom = new THREE.Geometry();
         var mesh;
@@ -60,23 +60,25 @@ var procGeomScene = function() {
         for(iKnot=0; iKnot < knotCount; iKnot += 1) {
             // TODO: minimum distance between neighboring knots?
             knots.push({
-                x: 2*Math.random()-1,
-                y: 2*Math.random()-1,
-                z: 2*Math.random()-1,
-                w:   Math.random()
+                x:  2*Math.random()-1,
+                y:  2*Math.random()-1,
+                z:  2*Math.random()-1,
+                w:  0.2*Math.random()+0.05,
+                tx: 2*Math.random()-1,
+                ty: 2*Math.random()-1,
+                tz: 2*Math.random()-1,
+                tw: 0.1*Math.random()-0.05,
             });
         }
         knots.push(knots[0]); // Duplicate knots to loop the curve
-        knots.push(knots[1]);
-        knots.push(knots[2]);
-        spline = SPLINE.makeSplineCatmullRomCentripetal(knots, 1.0);
+        spline = SPLINE.makeSplineBezier(knots);
         segmentCount = spline.segments.length;
         for(iSeg=0; iSeg<segmentCount; iSeg += 1) {
-            p1 = knots[iSeg+1];
-            p2 = knots[iSeg+2];
+            p1 = knots[iSeg+0];
+            p2 = knots[iSeg+1];
             // Rough heuristic: distance between segments -> number of rings per segment
             segLength = Math.sqrt( (p2.x-p1.x)*(p2.x-p1.x) + (p2.y-p1.y)*(p2.y-p1.y) + (p2.z-p1.z)*(p2.z-p1.z) );
-            ringsPerSegment = Math.floor(segLength * 10); // tune this!
+            ringsPerSegment = 4 + Math.ceil(segLength * 20); // tune this!
             for(iRing=0; iRing<=ringsPerSegment; iRing += 1) {
                 if (iRing === ringsPerSegment && iSeg < segmentCount-1)
                     continue;
@@ -85,6 +87,7 @@ var procGeomScene = function() {
                 tangent = _toVec3( spline.evalDPos(t) ).normalize();
                 normals = _computeNormals(tangent, lastUnitNormal);
                 lastUnitNormal = normals.unitNormal;
+                ringRadius = spline.evalPos(t).w;
                 for(iVert=0; iVert<vertsPerRing; iVert += 1) {
                     vert = ringCenter.clone();
                     vert.add( normals.unitBinormal.clone().multiplyScalar( ringRadius*Math.cos(2*Math.PI*iVert/vertsPerRing) ) );
