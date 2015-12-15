@@ -295,9 +295,9 @@ cds_spline3__compute_segment_matrix(cds_spline3 *outSpline, cds_spline_s32 segme
         cds_spline_mat34 *m = outSpline->segmentMatrices+segmentIndex;
         switch(outSpline->interpStyle) {
         case kCdsSplineInterpStyleHermite: {
-            const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex].position;
+            const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex+0].position;
             const cds_spline_vec3 *p1 = &outSpline->knots[segmentIndex+1].position;
-            const cds_spline_vec3 *t0 = &outSpline->knots[segmentIndex].tangent;
+            const cds_spline_vec3 *t0 = &outSpline->knots[segmentIndex+0].tangent;
             const cds_spline_vec3 *t1 = &outSpline->knots[segmentIndex+1].tangent;
             m->m00 = p0->x;
             m->m01 = p0->y;
@@ -314,13 +314,120 @@ cds_spline3__compute_segment_matrix(cds_spline3 *outSpline, cds_spline_s32 segme
             break;
         }
         case kCdsSplineInterpStyleBezier: {
+            const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex+0].position;
+            const cds_spline_vec3 *p3 = &outSpline->knots[segmentIndex+1].tangent;
+            const cds_spline_vec3 p1 = {
+                {
+                    p0->x + outSpline->knots[segmentIndex+0].tangent.x,
+                    p0->y + outSpline->knots[segmentIndex+0].tangent.y,
+                    p0->z + outSpline->knots[segmentIndex+0].tangent.z,
+                }
+            };
+            const cds_spline_vec3 p2 = {
+                {
+                    p3->x - outSpline->knots[segmentIndex+1].tangent.x,
+                    p3->y - outSpline->knots[segmentIndex+1].tangent.y,
+                    p3->z - outSpline->knots[segmentIndex+1].tangent.z,
+                }
+            };
+            m->m00 = p0->x;
+            m->m01 = p0->y;
+            m->m02 = p0->z;
+            m->m10 = (-3)*p0->x + ( 3)*p1.x;
+            m->m11 = (-3)*p0->y + ( 3)*p1.y;
+            m->m12 = (-3)*p0->z + ( 3)*p1.z;
+            m->m20 = ( 3)*p0->x + (-6)*p1.x + ( 3)*p2.x;
+            m->m21 = ( 3)*p0->y + (-6)*p1.y + ( 3)*p2.y;
+            m->m22 = ( 3)*p0->z + (-6)*p1.z + ( 3)*p2.z;
+            m->m30 = (-1)*p0->x + ( 3)*p1.x + (-3)*p2.x + p3->x;
+            m->m31 = (-1)*p0->y + ( 3)*p1.y + (-3)*p2.y + p3->y;
+            m->m32 = (-1)*p0->z + ( 3)*p1.z + (-3)*p2.z + p3->z;
             break;
         }
         case kCdsSplineInterpStyleCardinal: {
+            const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex+0].position;
+            const cds_spline_vec3 *p1 = &outSpline->knots[segmentIndex+1].position;
+            const cds_spline_vec3 *p2 = &outSpline->knots[segmentIndex+2].tangent;
+            const cds_spline_vec3 *p3 = &outSpline->knots[segmentIndex+3].tangent;
+            const cds_spline_r32 tau = outSpline->tension;
+            m->m00 = p1->x;
+            m->m01 = p1->y;
+            m->m02 = p1->z;
+            m->m10 =  (-tau)*p0->x +   (tau)*p2->x;
+            m->m11 =  (-tau)*p0->y +   (tau)*p2->y;
+            m->m12 =  (-tau)*p0->z +   (tau)*p2->z;
+            m->m20 = (2*tau)*p0->x + (tau-3)*p1->x + (3-2*tau)*p2->x + (-tau)*p3->x;
+            m->m21 = (2*tau)*p0->y + (tau-3)*p1->y + (3-2*tau)*p2->y + (-tau)*p3->y;
+            m->m22 = (2*tau)*p0->z + (tau-3)*p1->z + (3-2*tau)*p2->z + (-tau)*p3->z;
+            m->m30 =  (-tau)*p0->x + (2-tau)*p1->x +   (tau-2)*p2->x +  (tau)*p3->x;
+            m->m31 =  (-tau)*p0->y + (2-tau)*p1->y +   (tau-2)*p2->y +  (tau)*p3->y;
+            m->m32 =  (-tau)*p0->z + (2-tau)*p1->z +   (tau-2)*p2->z +  (tau)*p3->z;
             break;
         }
-        case kCdsSplineInterpStyleCentripetalCatmullRom:
+        case kCdsSplineInterpStyleCentripetalCatmullRom: {
+            const cds_spline_r32 alpha = outSpline->tension;
+            const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex+0].position;
+            const cds_spline_vec3 *p1 = &outSpline->knots[segmentIndex+1].position;
+            const cds_spline_vec3 *p2 = &outSpline->knots[segmentIndex+2].position;
+            const cds_spline_vec3 *p3 = &outSpline->knots[segmentIndex+3].position;
+            const cds_spline_r32 t0 = 0.0f;
+            const cds_spline_r32 t1 = t0 + pow(
+                (p1->x - p0->x)*(p1->x - p0->x) +
+                (p1->y - p0->y)*(p1->y - p0->y) +
+                (p1->z - p0->z)*(p1->z - p0->z),
+                alpha*0.5f );
+            const cds_spline_r32 t2 = t1 + pow(
+                (p2->x - p1->x)*(p2->x - p1->x) +
+                (p2->y - p1->y)*(p2->y - p1->y) +
+                (p2->z - p1->z)*(p2->z - p1->z),
+                alpha*0.5f );
+            const cds_spline_r32 t3 = t2 + pow(
+                (p3->x - p2->x)*(p3->x - p2->x) +
+                (p3->y - p2->y)*(p3->y - p2->y) +
+                (p3->z - p2->z)*(p3->z - p2->z),
+                alpha*0.5f );
+            /* Simplification: reduce centripetal Catmull-Rom to Hermite, as described in
+             * https://stackoverflow.com/questions/9489736/catmull-rom-curve-with-no-cusps-and-no-self-intersections/23980479#23980479
+             * Basically, given P0,P1,P2,P3 and t0,t1,t2,t3, compute tangents at P1 and P2:
+             *   tan1 = (P1 - P0) / (t1 - t0) - (P2 - P0) / (t2 - t0) + (P2 - P1) / (t2 - t1)
+             *   tan2 = (P2 - P1) / (t2 - t1) - (P3 - P1) / (t3 - t1) + (P3 - P2) / (t3 - t2)
+             * And plug into the standard Hermite basis matrix. If evaluating the segment from
+             * P1 to P2, the tangents must be scaled by (t2-t1) to put them in the appropriate range.
+             */
+            cds_spline_vec3 tan1 = {
+                {
+                    (p1->x - p0->x)/(t1-t0) - (p2->x - p0->x)/(t2-t0) + (p2->x - p1->x)/(t2-t1),
+                    (p1->y - p0->y)/(t1-t0) - (p2->y - p0->y)/(t2-t0) + (p2->y - p1->y)/(t2-t1),
+                    (p1->z - p0->z)/(t1-t0) - (p2->z - p0->z)/(t2-t0) + (p2->z - p1->z)/(t2-t1),
+                }
+            };
+            cds_spline_vec3 tan2 = {
+                {
+                    (p2->x - p1->x)/(t2-t1) - (p3->x - p1->x)/(t3-t1) + (p3->x - p2->x)/(t3-t2),
+                    (p2->y - p1->y)/(t2-t1) - (p3->y - p1->y)/(t3-t1) + (p3->y - p2->y)/(t3-t2),
+                    (p2->z - p1->z)/(t2-t1) - (p3->z - p1->z)/(t3-t1) + (p3->z - p2->z)/(t3-t2),
+                }
+            };
+            tan1.x *= (t2-t1);
+            tan1.y *= (t2-t1);
+            tan1.z *= (t2-t1);
+            tan2.x *= (t2-t1);
+            tan2.y *= (t2-t1);
+            tan2.z *= (t2-t1);
+            m->m00 = p1->x;
+            m->m01 = p1->y;
+            m->m02 = p1->z;
+            m->m10 = tan1.x;
+            m->m11 = tan1.y;
+            m->m12 = tan1.z;
+            m->m20 = (-3)*p1->x + ( 3)*p2->x + (-2)*tan1.x + (-1)*tan2.x;
+            m->m21 = (-3)*p1->y + ( 3)*p2->y + (-2)*tan1.y + (-1)*tan2.y;
+            m->m22 = (-3)*p1->z + ( 3)*p2->z + (-2)*tan1.z + (-1)*tan2.z;
+            m->m30 = ( 2)*p1->x + (-2)*p2->x +      tan1.x +      tan2.x;
+            m->m31 = ( 2)*p1->y + (-2)*p2->y +      tan1.y +      tan2.y;
+            m->m32 = ( 2)*p1->z + (-2)*p2->z +      tan1.z +      tan2.z;
             break;
+        }
         }
     }
 }
