@@ -8,7 +8,7 @@
  * implementations.
  *
  * For a unit test on gcc/Clang:
- *   cc -Wall -std=c89 -g -x c -DCDS_SPLINE_TEST -o test_cds_spline.exe cds_spline.h
+ *   cc -Wall -std=c89 -g -x c -DCDS_SPLINE_TEST -o test_cds_spline.exe cds_spline.h -lm
  *
  * For a unit test on Visual C++:
  *   "%VS120COMNTOOLS%\..\..\VC\vcvarsall.bat"
@@ -87,85 +87,165 @@
 typedef float  cds_spline_r32;
 typedef double cds_spline_r64;
 typedef cds_spline_s32 cds_spline_bool32_t;
-typedef cds_spline_s32 cds_spline_error_t;
 
 #if defined(CDS_SPLINE_COMPILER_MSVC)
 #   define CDS_SPLINE_ALIGN(n) __declspec(align(n))
 #elif defined(CDS_SPLINE_COMPILER_CLANG) || defined(CDS_SPLINE_COMPILER_GCC)
 #   define CDS_SPLINE_ALIGN(n) __attribute__((__aligned__(n)))
 #else
-#   error Unsupporter compiler
+#   error Unsupported compiler
 #endif
 
-/**
- * Uses of splines:
- * 1 Hey, I have a bunch of values of a parameter, and want to interpolate smoothly.
- *   I'll be handing you a bunch of points up-front, and querying for points along
- *   the path after that. I know exactly how many points I'll need up front
- * 2 Hey, I'm just like the case #1, but now I want to edit the parameter values
- *   and see the path update interactively, preferably in an O(1) fashion. This may
- *   inclulde inserting/removing control points.
- * 3 Hey, I'm making some sort of demoscene effect, and I want an infinite procedural spline.
- *   I'm going to adding points to the end, and removing them from the beginning as things
- *   fade out. I want to specify how many points to store simultaneously,
- *
- * What about dimensionality? 1D, 2D, and 3D are all reasonably common. 4D seems plausible.
- * Higher than that seems a bit esoteric.
- * So...templates, with specialization for common cases? Or just implement the common cases,
- * live with some code duplication, and leave >4D unsupported?
- *
- * Operations on splines:
- * - Create (with memory arena based on maximum length)
- * - 
- */
+typedef union cds_spline_vec1 {
+    struct {
+        cds_spline_r32 x;
+    };
+    cds_spline_r32 elems[1];
+} cds_spline_vec1;
 
 typedef union cds_spline_vec2 {
     struct {
-        float x,y;
+        cds_spline_r32 x,y;
     };
-    float elems[2];
+    cds_spline_r32 elems[2];
 } cds_spline_vec2;
 
 typedef union cds_spline_vec3 {
     struct {
-        float x,y,z;
+        cds_spline_r32 x,y,z;
     };
-    float elems[3];
+    cds_spline_r32 elems[3];
 } cds_spline_vec3;
 
 typedef union cds_spline_vec4 {
     struct {
-        float x,y,z,w;
+        cds_spline_r32 x,y,z,w;
     };
-    float elems[4];
+    cds_spline_r32 elems[4];
 } cds_spline_vec4;
+
+typedef union cds_spline_mat14 {
+    struct {
+        cds_spline_r32 m00;
+        cds_spline_r32 m10;
+        cds_spline_r32 m20;
+        cds_spline_r32 m30;
+    };
+    cds_spline_vec1 rows[4];
+    cds_spline_r32 elems[4];
+} cds_spline_mat14;
+
+typedef union cds_spline_mat24 {
+    struct {
+        cds_spline_r32 m00,m01;
+        cds_spline_r32 m10,m11;
+        cds_spline_r32 m20,m21;
+        cds_spline_r32 m30,m31;
+    };
+    cds_spline_vec2 rows[4];
+    cds_spline_r32 elems[8];
+} cds_spline_mat24;
+
+typedef union cds_spline_mat34 {
+    struct {
+        cds_spline_r32 m00,m01,m02;
+        cds_spline_r32 m10,m11,m12;
+        cds_spline_r32 m20,m21,m22;
+        cds_spline_r32 m30,m31,m32;
+    };
+    cds_spline_vec3 rows[4];
+    cds_spline_r32 elems[12];
+} cds_spline_mat34;
 
 typedef union cds_spline_mat44 {
     struct {
-        float m00,m01,m02,m03;
-        float m10,m11,m12,m13;
-        float m20,m21,m22,m23;
-        float m30,m31,m32,m33;
+        cds_spline_r32 m00,m01,m02,m03;
+        cds_spline_r32 m10,m11,m12,m13;
+        cds_spline_r32 m20,m21,m22,m23;
+        cds_spline_r32 m30,m31,m32,m33;
     };
     cds_spline_vec4 rows[4];
-    float elems[16];
+    cds_spline_r32 elems[16];
 } cds_spline_mat44;
 
-typedef struct cds_spline_cr2_segment { /* TODO: align to 16 */
-    cds_spline_mat44 geomMatrix;
-    cds_spline_vec2 controlPoint[2]; /* point at the beginning of this segment */
-    cds_spline_s32 next;
-    cds_spline_s32 prev;
-} cds_spline_cr2_segment;
+typedef struct cds_spline_knot1 {
+    cds_spline_vec1 position;
+    cds_spline_vec1 tangent;
+} cds_spline_knot1;
 
-typedef struct cds_spline_cr2
-{
-    cds_spline_cr2_segment *segments;
-    cds_spline_s32 first, last;
-    cds_spline_s32 numSegments;
-    cds_spline_s32 nextFree;
-    cds_spline_s32 capacity;
-} cds_spline_cr2;
+typedef struct cds_spline_knot2 {
+    cds_spline_vec2 position;
+    cds_spline_vec2 tangent;
+} cds_spline_knot2;
+
+typedef struct cds_spline_knot3 {
+    cds_spline_vec3 position;
+    cds_spline_vec3 tangent;
+} cds_spline_knot3;
+
+typedef struct cds_spline_knot4 {
+    cds_spline_vec4 position;
+    cds_spline_vec4 tangent;
+} cds_spline_knot4;
+
+typedef enum cds_spline_interp_style {
+    kCdsSplineInterpStyleHermite               = 1,
+    kCdsSplineInterpStyleBezier                = 2,
+    kCdsSplineInterpStyleCardinal              = 3, /** Use difference between neighboring points as the tangent */
+    kCdsSplineInterpStyleCentripetalCatmullRom = 4, /** Use difference between neighboring points as the tangent, avoiding cusps and self-intersection. */
+} cds_spline_interp_style;
+
+typedef enum cds_spline_error_t {
+    kCdsSplineErrorNone                   = 0x00000000,
+
+    kCdsSplineErrorInit_BufferSize        = 0x80000001,
+
+    kCdsSplineErrorInsertKnot_KnotIndex   = 0x80010001,
+    kCdsSplineErrorInsertKnot_MaxNumKnots = 0x80010002,
+
+    kCdsSplineErrorSetKnot_KnotIndex      = 0x80020001,
+
+    kCdsSplineErrorRemoveKnot_KnotIndex   = 0x80030001,
+} cds_spline_error_t;
+
+typedef struct cds_spline3 {
+    cds_spline_mat34 *segmentMatrices;
+    cds_spline_interp_style interpStyle;
+    cds_spline_r32 tension;
+
+    cds_spline_knot3 *knots;
+    cds_spline_s32 numKnots;
+    cds_spline_s32 maxNumKnots;
+    cds_spline_s32 numSegments; /** Automatically kept up to date based on interpStyle and numKnots */
+} cds_spline3;
+
+CDS_SPLINE_DEF size_t
+cds_spline3_buffer_size(cds_spline_interp_style interpStyle, cds_spline_s32 maxKnotCount);
+
+CDS_SPLINE_DEF cds_spline_error_t
+cds_spline3_init(cds_spline3 *outSpline, cds_spline_interp_style interpStyle, cds_spline_s32 maxKnotCount,
+    void *buffer, size_t bufferSize);
+
+CDS_SPLINE_DEF cds_spline_error_t
+cds_spline3_set_tension(cds_spline3 *outSpline, cds_spline_r32 tension);
+
+CDS_SPLINE_DEF cds_spline_error_t
+cds_spline3_insert_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_spline_knot3 knot);
+
+CDS_SPLINE_DEF cds_spline_error_t
+cds_spline3_set_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_spline_knot3 knot);
+
+CDS_SPLINE_DEF cds_spline_error_t
+cds_spline3_remove_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex);
+
+CDS_SPLINE_DEF cds_spline_vec3
+cds_spline3_eval_pos(const cds_spline3 *spline, cds_spline_r32 t);
+
+CDS_SPLINE_DEF cds_spline_vec3
+cds_spline3_eval_dpos(const cds_spline3 *spline, cds_spline_r32 t);
+
+CDS_SPLINE_DEF cds_spline_vec3
+cds_spline3_eval_ddpos(const cds_spline3 *spline, cds_spline_r32 t);
 
 #endif /*-------------- end header file ------------------------*/
 
@@ -176,7 +256,254 @@ typedef struct cds_spline_cr2
 #if defined(CDS_SPLINE_IMPLEMENTATION)
 
 #define CDS_SPLINE_ALIGN_TO(n,po2) ( ((n)+(po2)-1) & ~((po2)-1) )
+
+#ifndef CDS_SPLINE_ASSERT
+#   include <assert.h>
+#   define CDS_SPLINE_ASSERT assert
+#endif
+
+#include <math.h>
+
+#define CDS_SPLINE_MIN(x,y) ((x)<(y) ? (x) : (y))
+#define CDS_SPLINE_MAX(x,y) ((x)>(y) ? (x) : (y))
+
+static CDS_SPLINE_INLINE cds_spline_r32
+cds_spline__roundf(cds_spline_r32 x) {
+    cds_spline_r32 result = (float)floor((float)x);
+    return result;
+}
+
+static CDS_SPLINE_INLINE void
+cds_spline__get_int_and_frac(cds_spline_s32 numKnots, cds_spline_r32 t, cds_spline_s32 *outInt, cds_spline_r32 *outFrac) {
+    cds_spline_r32 tMax = (cds_spline_r32)(numKnots-1);
+    if (numKnots < 2 || t <= 0) {
+        *outInt  = 0;
+        *outFrac = 0.0f;
+    } else if (t >= tMax) {
+        *outInt = numKnots-2;
+        *outFrac = 1.0f;
+    } else {
+        cds_spline_r32 tFloor = cds_spline__roundf(t);
+        *outInt = (cds_spline_s32)tFloor;
+        *outFrac = t - tFloor;
+    }
+}
+
+static CDS_SPLINE_INLINE void
+cds_spline3__compute_segment_matrix(cds_spline3 *outSpline, cds_spline_s32 segmentIndex) {
+    if (segmentIndex >= 0 && segmentIndex < outSpline->numSegments) {
+        cds_spline_mat34 *m = outSpline->segmentMatrices+segmentIndex;
+        switch(outSpline->interpStyle) {
+        case kCdsSplineInterpStyleHermite: {
+            const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex].position;
+            const cds_spline_vec3 *p1 = &outSpline->knots[segmentIndex+1].position;
+            const cds_spline_vec3 *t0 = &outSpline->knots[segmentIndex].tangent;
+            const cds_spline_vec3 *t1 = &outSpline->knots[segmentIndex+1].tangent;
+            m->m00 = p0->x;
+            m->m01 = p0->y;
+            m->m02 = p0->z;
+            m->m10 = t0->x;
+            m->m11 = t0->y;
+            m->m12 = t0->z;
+            m->m20 = (-3)*p0->x +  (3)*p1->x + (-2)*t0->x + (-1)*t1->x;
+            m->m21 = (-3)*p0->y +  (3)*p1->y + (-2)*t0->y + (-1)*t1->y;
+            m->m22 = (-3)*p0->z +  (3)*p1->z + (-2)*t0->z + (-1)*t1->z;
+            m->m30 =  (2)*p0->x + (-2)*p1->x +      t0->x +      t1->x;
+            m->m31 =  (2)*p0->y + (-2)*p1->y +      t0->y +      t1->y;
+            m->m32 =  (2)*p0->z + (-2)*p1->z +      t0->z +      t1->z;
+            break;
+        }
+        case kCdsSplineInterpStyleBezier: {
+            break;
+        }
+        case kCdsSplineInterpStyleCardinal: {
+            break;
+        }
+        case kCdsSplineInterpStyleCentripetalCatmullRom:
+            break;
+        }
+    }
+}
+
+size_t
+cds_spline3_buffer_size(cds_spline_interp_style interpStyle, cds_spline_s32 maxKnotCount) {
+    (void)interpStyle;
+    if (maxKnotCount <= 0)
+        return 0;
+    /* TODO: cardinal and catmull-rom splines need two fewer segment matrices */
+    return maxKnotCount*sizeof(cds_spline_knot3) + (maxKnotCount-1)*sizeof(cds_spline_mat34);
+}
+
+cds_spline_error_t
+cds_spline3_init(cds_spline3 *outSpline, cds_spline_interp_style interpStyle, cds_spline_s32 maxKnotCount,
+    void *buffer, size_t bufferSize) {
+    size_t minBufferSize = cds_spline3_buffer_size(interpStyle, maxKnotCount);
+    if (bufferSize < minBufferSize)
+        return kCdsSplineErrorInit_BufferSize;
     
+    cds_spline_u8 *bufferNext = (cds_spline_u8*)buffer;
+    outSpline->segmentMatrices = (cds_spline_mat34*)bufferNext;
+    bufferNext += (maxKnotCount-1)*sizeof(cds_spline_mat34);
+    outSpline->knots = (cds_spline_knot3*)bufferNext;
+    bufferNext += maxKnotCount*sizeof(cds_spline_knot3);
+    CDS_SPLINE_ASSERT( (intptr_t)bufferNext - (intptr_t)buffer == (intptr_t)minBufferSize );
+    
+    outSpline->interpStyle = interpStyle;
+    outSpline->tension = 0.5;
+    outSpline->numKnots = 0;
+    outSpline->maxNumKnots = maxKnotCount;
+    outSpline->numSegments = 0;
+
+    return kCdsSplineErrorNone;
+}
+
+cds_spline_error_t
+cds_spline3_set_tension(cds_spline3 *outSpline, cds_spline_r32 tension) {
+    cds_spline_s32 iSeg;
+    if (outSpline->tension != tension) {
+        outSpline->tension = tension;
+        for(iSeg=0; iSeg<outSpline->numSegments; iSeg += 1) {
+            cds_spline3__compute_segment_matrix(outSpline, iSeg);
+        }
+    }
+    return kCdsSplineErrorNone;
+}
+
+cds_spline_error_t
+cds_spline3_insert_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_spline_knot3 knot) {
+    cds_spline_s32 iKnot, iSeg;
+    if (outSpline->numKnots == outSpline->maxNumKnots)
+        return kCdsSplineErrorInsertKnot_MaxNumKnots;
+    if (knotIndex < 0 || knotIndex > outSpline->numKnots)
+        return kCdsSplineErrorInsertKnot_KnotIndex;
+    for(iKnot=outSpline->numKnots-1; iKnot>=knotIndex; iKnot -= 1) {
+        outSpline->knots[iKnot] = outSpline->knots[iKnot-1];
+    }
+    for(iSeg=outSpline->numKnots-2; iSeg>=knotIndex; iSeg -= 1) {/* TODO: adjust copy bounds; we're overwriting some of these anyway. */
+        outSpline->segmentMatrices[iSeg] = outSpline->segmentMatrices[iSeg-1];
+    }
+    outSpline->numKnots += 1;
+    switch(outSpline->interpStyle) {
+    case kCdsSplineInterpStyleHermite:
+    case kCdsSplineInterpStyleBezier:
+        outSpline->numSegments = CDS_SPLINE_MAX(outSpline->numKnots-1, 0);
+        break;
+    case kCdsSplineInterpStyleCardinal:
+    case kCdsSplineInterpStyleCentripetalCatmullRom:
+        outSpline->numSegments = CDS_SPLINE_MAX(outSpline->numKnots-3, 0);
+        break;
+    }
+    return cds_spline3_set_knot(outSpline, knotIndex, knot);
+}
+
+cds_spline_error_t
+cds_spline3_set_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_spline_knot3 knot) {
+    cds_spline_s32 iSeg, firstSegment, lastSegment;
+    if (knotIndex < 0 || knotIndex >= outSpline->numKnots)
+        return kCdsSplineErrorSetKnot_KnotIndex;
+    outSpline->knots[knotIndex] = knot;
+    switch(outSpline->interpStyle) {
+    case kCdsSplineInterpStyleHermite:
+    case kCdsSplineInterpStyleBezier:
+        firstSegment = knotIndex-1;
+        lastSegment = knotIndex;
+        break;
+    case kCdsSplineInterpStyleCardinal:
+    case kCdsSplineInterpStyleCentripetalCatmullRom:
+        firstSegment = knotIndex-3;
+        lastSegment = knotIndex;
+        break;
+    }
+    for(iSeg=firstSegment; iSeg<=lastSegment; iSeg += 1) {
+        cds_spline3__compute_segment_matrix(outSpline, iSeg);
+    }
+    return kCdsSplineErrorNone;
+}
+
+cds_spline_error_t
+cds_spline3_remove_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex) {
+    cds_spline_s32 iKnot, iSeg, firstSegment, lastSegment;
+    if (knotIndex < 0 || knotIndex >= outSpline->numKnots)
+        return kCdsSplineErrorRemoveKnot_KnotIndex;
+    for(iKnot=knotIndex; iKnot<outSpline->numKnots-1; iKnot += 1) {
+        outSpline->knots[iKnot] = outSpline->knots[iKnot+1];
+    }
+    for(iSeg=knotIndex; iSeg<outSpline->numKnots-2; iSeg += 1) { /* TODO: adjust copy bounds; we're overwriting mat[ki+1] anyway */
+        outSpline->segmentMatrices[iKnot] = outSpline->segmentMatrices[iKnot+1];
+    }
+    outSpline->numKnots -= 1;
+    switch(outSpline->interpStyle) {
+    case kCdsSplineInterpStyleHermite:
+    case kCdsSplineInterpStyleBezier:
+        outSpline->numSegments = CDS_SPLINE_MAX(outSpline->numKnots-1, 0);
+        firstSegment = knotIndex-1;
+        lastSegment = knotIndex;
+        break;
+    case kCdsSplineInterpStyleCardinal:
+    case kCdsSplineInterpStyleCentripetalCatmullRom:
+        outSpline->numSegments = CDS_SPLINE_MAX(outSpline->numKnots-3, 0);
+        firstSegment = knotIndex-3;
+        lastSegment = knotIndex;
+        break;
+    }
+    for(iSeg=firstSegment; iSeg<=lastSegment; iSeg += 1) {
+        cds_spline3__compute_segment_matrix(outSpline, iSeg);
+    }
+    return kCdsSplineErrorNone;
+}
+
+cds_spline_vec3
+cds_spline3_eval_pos(const cds_spline3 *spline, cds_spline_r32 t) {
+    cds_spline_s32 segment;
+    cds_spline_r32 u;
+    cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
+    CDS_SPLINE_ASSERT(segment >= 0 && segment < spline->numSegments);
+    const cds_spline_mat34 *m = spline->segmentMatrices + segment;
+    cds_spline_vec3 pos = {
+        {
+            ((m->m30*u + m->m20)*u + m->m10)*u + m->m00,
+            ((m->m31*u + m->m21)*u + m->m11)*u + m->m01,
+            ((m->m32*u + m->m22)*u + m->m12)*u + m->m02,
+        }
+    };
+    return pos;
+}
+
+cds_spline_vec3
+cds_spline3_eval_dpos(const cds_spline3 *spline, cds_spline_r32 t) {
+    cds_spline_s32 segment;
+    cds_spline_r32 u;
+    cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
+    CDS_SPLINE_ASSERT(segment >= 0 && segment < spline->numSegments);
+    const cds_spline_mat34 *m = spline->segmentMatrices + segment;
+    cds_spline_vec3 dpos = {
+        {
+            (3*m->m30*u + 2*m->m20)*u + m->m10,
+            (3*m->m31*u + 2*m->m21)*u + m->m11,
+            (3*m->m32*u + 2*m->m22)*u + m->m12,
+        }
+    };
+    return dpos;
+}
+
+cds_spline_vec3
+cds_spline3_eval_ddpos(const cds_spline3 *spline, cds_spline_r32 t) {
+    cds_spline_s32 segment;
+    cds_spline_r32 u;
+    cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
+    CDS_SPLINE_ASSERT(segment >= 0 && segment < spline->numSegments);
+    const cds_spline_mat34 *m = spline->segmentMatrices + segment;
+    cds_spline_vec3 ddpos = {
+        {
+            6*m->m30*u + 2*m->m20,
+            6*m->m31*u + 2*m->m21,
+            6*m->m32*u + 2*m->m22,
+        }
+    };
+    return ddpos;
+}
+
+   
 #endif /*------------ end implementation ------------------------*/
 
 
@@ -190,58 +517,36 @@ typedef struct cds_spline_cr2
 #include <stdlib.h>
 
 int main() {
-    cds_spline_cr2 spline;
-    cds_spline_vec2 controlPoints[] = {
-        {{ 0, 1}},
-        {{ 1, 0}},
-        {{ 0,-1}},
-        {{-1, 0}},
-        {{ 0, 1}},
-        {{ 1, 0}},
-        {{ 0,-1}},
+    cds_spline_s32 iKnot, iSamp;
+    cds_spline3 spline;
+    cds_spline_knot3 knots[] = {
+        { {{-1, 0, 0}}, {{ 0, 1, 0}} },
+        { {{ 0, 1, 0}}, {{ 1, 0, 0}} },
+        { {{ 1, 0, 0}}, {{ 0,-1, 0}} },
+        { {{ 0,-1, 0}}, {{-1, 0, 0}} },
     };
-    cds_spline_s32 controlPointCount = sizeof(controlPoints) / sizeof(controlPoints[0]);
-    cds_spline_s32 segmentCount = controlPointCount-3;
-    cds_spline_s32 iSeg;
-    const float tau = 0.5f;
-    assert(segmentCount >= 0);
-    spline.segments = (cds_spline_cr2_segment*)memalign(16, segmentCount*sizeof(cds_spline_cr2_segment));
-    for(iSeg=0; iSeg<segmentCount; ++iSeg) {
-        cds_spline_s32 iSamp;
-        cds_spline_mat44 *m = &spline.segments[iSeg].geomMatrix;
-        cds_spline_vec2 *p0 = controlPoints+iSeg, *p1 = p0+1, *p2 = p1+1, *p3 = p2+1;
-        m->m00 = p1->x;
-        m->m01 = p1->y;
-        m->m02 = 0;
-        m->m03 = 0;
-        m->m10 = (-tau)*p0->x + (tau)*p2->x;
-        m->m11 = (-tau)*p0->y + (tau)*p2->y;
-        m->m12 = 0;
-        m->m13 = 0;
-        m->m20 = (2.0f*tau)*p0->x + (tau-3.0f)*p1->x + (3.0f-2.0f*tau)*p2->x + (-tau)*p3->x;
-        m->m21 = (2.0f*tau)*p0->y + (tau-3.0f)*p1->y + (3.0f-2.0f*tau)*p2->y + (-tau)*p3->y;
-        m->m22 = 0;
-        m->m23 = 0;
-        m->m30 = (-tau)*p0->x + (2.0f-tau)*p1->x + (tau-2.0f)*p2->x + (tau)*p3->x;
-        m->m31 = (-tau)*p0->y + (2.0f-tau)*p1->y + (tau-2.0f)*p2->y + (tau)*p3->y;
-        m->m32 = 0;
-        m->m33 = 0;
-
-        for(iSamp=0; iSamp<=16; ++iSamp) {
-            float u = (float)iSamp / 16.0f;
-            cds_spline_vec2 samp = {
-                {
-                    ((m->m30*u + m->m20)*u + m->m10)*u + m->m00,
-                    ((m->m31*u + m->m21)*u + m->m11)*u + m->m01,
-                }
-            };
-            printf("seg=%2d u=%.3f samp=[%11.8f %11.8f]\n", iSeg, u, samp.x, samp.y);
-        }
+    cds_spline_s32 knotCount = sizeof(knots) / sizeof(knots[0]);
+    cds_spline_s32 maxKnotCount = 16;
+    cds_spline_interp_style interpStyle = kCdsSplineInterpStyleHermite;
+    cds_spline_s32 sampleCount = 64;
+    CDS_SPLINE_ASSERT(knotCount >= 0);
+    size_t bufferSize = cds_spline3_buffer_size(interpStyle, maxKnotCount);
+    void *buffer = malloc(bufferSize);
+    cds_spline_error_t splineError = cds_spline3_init(&spline, interpStyle, maxKnotCount, buffer, bufferSize);
+    CDS_SPLINE_ASSERT(splineError == kCdsSplineErrorNone);
+    for(iKnot=0; iKnot<knotCount; ++iKnot) {
+        printf("spline.numKnots: %d\n", spline.numKnots);
+        splineError = cds_spline3_insert_knot(&spline, iKnot, knots[iKnot]);
+        printf("0x%08X\n", splineError);
+        CDS_SPLINE_ASSERT(splineError == kCdsSplineErrorNone);
+    }
+    for(iSamp=0; iSamp<=sampleCount; ++iSamp) {
+        float u = (float)iSamp * (float)spline.numSegments / (float)sampleCount;
+        cds_spline_vec3 pos = cds_spline3_eval_pos(&spline, u);
+        printf("u=%.3f pos=[%11.8f %11.8f]\n", u, pos.x, pos.y);
     }
 
-
-
-    free(spline.segments);
+    free(buffer);
     return 0;
 }
 
