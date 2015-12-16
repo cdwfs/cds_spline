@@ -96,6 +96,10 @@ typedef cds_spline_s32 cds_spline_bool32_t;
 #   error Unsupported compiler
 #endif
 
+#ifdef CDS_SPLINE_COMPILER_MSVC
+#   pragma warning(push)
+#   pragma warning(disable:4201) /* nameless struct/union */
+#endif
 typedef union cds_spline_vec1 {
     struct {
         cds_spline_r32 x;
@@ -167,6 +171,9 @@ typedef union cds_spline_mat44 {
     cds_spline_vec4 rows[4];
     cds_spline_r32 elems[16];
 } cds_spline_mat44;
+#ifdef CDS_SPLINE_COMPILER_MSVC
+#   pragma warning(pop)
+#endif
 
 typedef struct cds_spline_knot1 {
     cds_spline_vec1 position;
@@ -316,20 +323,13 @@ cds_spline3__compute_segment_matrix(cds_spline3 *outSpline, cds_spline_s32 segme
         case kCdsSplineInterpStyleBezier: {
             const cds_spline_vec3 *p0 = &outSpline->knots[segmentIndex+0].position;
             const cds_spline_vec3 *p3 = &outSpline->knots[segmentIndex+1].tangent;
-            const cds_spline_vec3 p1 = {
-                {
-                    p0->x + outSpline->knots[segmentIndex+0].tangent.x,
-                    p0->y + outSpline->knots[segmentIndex+0].tangent.y,
-                    p0->z + outSpline->knots[segmentIndex+0].tangent.z,
-                }
-            };
-            const cds_spline_vec3 p2 = {
-                {
-                    p3->x - outSpline->knots[segmentIndex+1].tangent.x,
-                    p3->y - outSpline->knots[segmentIndex+1].tangent.y,
-                    p3->z - outSpline->knots[segmentIndex+1].tangent.z,
-                }
-            };
+            cds_spline_vec3 p1, p2;
+            p1.x = p0->x + outSpline->knots[segmentIndex+0].tangent.x;
+            p1.y = p0->y + outSpline->knots[segmentIndex+0].tangent.y;
+            p1.z = p0->z + outSpline->knots[segmentIndex+0].tangent.z;
+            p2.x = p3->x - outSpline->knots[segmentIndex+1].tangent.x;
+            p2.y = p3->y - outSpline->knots[segmentIndex+1].tangent.y;
+            p2.z = p3->z - outSpline->knots[segmentIndex+1].tangent.z;
             m->m00 = p0->x;
             m->m01 = p0->y;
             m->m02 = p0->z;
@@ -371,17 +371,17 @@ cds_spline3__compute_segment_matrix(cds_spline3 *outSpline, cds_spline_s32 segme
             const cds_spline_vec3 *p2 = &outSpline->knots[segmentIndex+2].position;
             const cds_spline_vec3 *p3 = &outSpline->knots[segmentIndex+3].position;
             const cds_spline_r32 t0 = 0.0f;
-            const cds_spline_r32 t1 = t0 + pow(
+            const cds_spline_r32 t1 = t0 + (cds_spline_r32)pow(
                 (p1->x - p0->x)*(p1->x - p0->x) +
                 (p1->y - p0->y)*(p1->y - p0->y) +
                 (p1->z - p0->z)*(p1->z - p0->z),
                 alpha*0.5f );
-            const cds_spline_r32 t2 = t1 + pow(
+            const cds_spline_r32 t2 = t1 + (cds_spline_r32)pow(
                 (p2->x - p1->x)*(p2->x - p1->x) +
                 (p2->y - p1->y)*(p2->y - p1->y) +
                 (p2->z - p1->z)*(p2->z - p1->z),
                 alpha*0.5f );
-            const cds_spline_r32 t3 = t2 + pow(
+            const cds_spline_r32 t3 = t2 + (cds_spline_r32)pow(
                 (p3->x - p2->x)*(p3->x - p2->x) +
                 (p3->y - p2->y)*(p3->y - p2->y) +
                 (p3->z - p2->z)*(p3->z - p2->z),
@@ -394,20 +394,13 @@ cds_spline3__compute_segment_matrix(cds_spline3 *outSpline, cds_spline_s32 segme
              * And plug into the standard Hermite basis matrix. If evaluating the segment from
              * P1 to P2, the tangents must be scaled by (t2-t1) to put them in the appropriate range.
              */
-            cds_spline_vec3 tan1 = {
-                {
-                    (p1->x - p0->x)/(t1-t0) - (p2->x - p0->x)/(t2-t0) + (p2->x - p1->x)/(t2-t1),
-                    (p1->y - p0->y)/(t1-t0) - (p2->y - p0->y)/(t2-t0) + (p2->y - p1->y)/(t2-t1),
-                    (p1->z - p0->z)/(t1-t0) - (p2->z - p0->z)/(t2-t0) + (p2->z - p1->z)/(t2-t1),
-                }
-            };
-            cds_spline_vec3 tan2 = {
-                {
-                    (p2->x - p1->x)/(t2-t1) - (p3->x - p1->x)/(t3-t1) + (p3->x - p2->x)/(t3-t2),
-                    (p2->y - p1->y)/(t2-t1) - (p3->y - p1->y)/(t3-t1) + (p3->y - p2->y)/(t3-t2),
-                    (p2->z - p1->z)/(t2-t1) - (p3->z - p1->z)/(t3-t1) + (p3->z - p2->z)/(t3-t2),
-                }
-            };
+            cds_spline_vec3 tan1, tan2;
+            tan1.x = (p1->x - p0->x)/(t1-t0) - (p2->x - p0->x)/(t2-t0) + (p2->x - p1->x)/(t2-t1);
+            tan1.y = (p1->y - p0->y)/(t1-t0) - (p2->y - p0->y)/(t2-t0) + (p2->y - p1->y)/(t2-t1);
+            tan1.z = (p1->z - p0->z)/(t1-t0) - (p2->z - p0->z)/(t2-t0) + (p2->z - p1->z)/(t2-t1);
+            tan2.x = (p2->x - p1->x)/(t2-t1) - (p3->x - p1->x)/(t3-t1) + (p3->x - p2->x)/(t3-t2);
+            tan2.y = (p2->y - p1->y)/(t2-t1) - (p3->y - p1->y)/(t3-t1) + (p3->y - p2->y)/(t3-t2);
+            tan2.z = (p2->z - p1->z)/(t2-t1) - (p3->z - p1->z)/(t3-t1) + (p3->z - p2->z)/(t3-t2);
             tan1.x *= (t2-t1);
             tan1.y *= (t2-t1);
             tan1.z *= (t2-t1);
@@ -505,7 +498,7 @@ cds_spline3_insert_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_sp
 
 cds_spline_error_t
 cds_spline3_set_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_spline_knot3 knot) {
-    cds_spline_s32 iSeg, firstSegment, lastSegment;
+    cds_spline_s32 iSeg, firstSegment=-1, lastSegment=-1;
     if (knotIndex < 0 || knotIndex >= outSpline->numKnots)
         return kCdsSplineErrorSetKnot_KnotIndex;
     outSpline->knots[knotIndex] = knot;
@@ -529,7 +522,7 @@ cds_spline3_set_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex, cds_splin
 
 cds_spline_error_t
 cds_spline3_remove_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex) {
-    cds_spline_s32 iKnot, iSeg, firstSegment, lastSegment;
+    cds_spline_s32 iKnot, iSeg, firstSegment=-1, lastSegment=-1;
     if (knotIndex < 0 || knotIndex >= outSpline->numKnots)
         return kCdsSplineErrorRemoveKnot_KnotIndex;
     for(iKnot=knotIndex; iKnot<outSpline->numKnots-1; iKnot += 1) {
@@ -566,13 +559,10 @@ cds_spline3_eval_pos(const cds_spline3 *spline, cds_spline_r32 t) {
     cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
     CDS_SPLINE_ASSERT(segment >= 0 && segment < spline->numSegments);
     const cds_spline_mat34 *m = spline->segmentMatrices + segment;
-    cds_spline_vec3 pos = {
-        {
-            ((m->m30*u + m->m20)*u + m->m10)*u + m->m00,
-            ((m->m31*u + m->m21)*u + m->m11)*u + m->m01,
-            ((m->m32*u + m->m22)*u + m->m12)*u + m->m02,
-        }
-    };
+    cds_spline_vec3 pos;
+    pos.x = ((m->m30*u + m->m20)*u + m->m10)*u + m->m00;
+    pos.y = ((m->m31*u + m->m21)*u + m->m11)*u + m->m01;
+    pos.z = ((m->m32*u + m->m22)*u + m->m12)*u + m->m02;
     return pos;
 }
 
@@ -583,13 +573,10 @@ cds_spline3_eval_dpos(const cds_spline3 *spline, cds_spline_r32 t) {
     cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
     CDS_SPLINE_ASSERT(segment >= 0 && segment < spline->numSegments);
     const cds_spline_mat34 *m = spline->segmentMatrices + segment;
-    cds_spline_vec3 dpos = {
-        {
-            (3*m->m30*u + 2*m->m20)*u + m->m10,
-            (3*m->m31*u + 2*m->m21)*u + m->m11,
-            (3*m->m32*u + 2*m->m22)*u + m->m12,
-        }
-    };
+    cds_spline_vec3 dpos;
+    dpos.x = (3*m->m30*u + 2*m->m20)*u + m->m10;
+    dpos.y = (3*m->m31*u + 2*m->m21)*u + m->m11;
+    dpos.z = (3*m->m32*u + 2*m->m22)*u + m->m12;
     return dpos;
 }
 
@@ -600,13 +587,10 @@ cds_spline3_eval_ddpos(const cds_spline3 *spline, cds_spline_r32 t) {
     cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
     CDS_SPLINE_ASSERT(segment >= 0 && segment < spline->numSegments);
     const cds_spline_mat34 *m = spline->segmentMatrices + segment;
-    cds_spline_vec3 ddpos = {
-        {
-            6*m->m30*u + 2*m->m20,
-            6*m->m31*u + 2*m->m21,
-            6*m->m32*u + 2*m->m22,
-        }
-    };
+    cds_spline_vec3 ddpos;
+    ddpos.x = 6*m->m30*u + 2*m->m20;
+    ddpos.y = 6*m->m31*u + 2*m->m21;
+    ddpos.z = 6*m->m32*u + 2*m->m22;
     return ddpos;
 }
 
