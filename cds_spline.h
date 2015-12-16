@@ -246,13 +246,13 @@ CDS_SPLINE_DEF cds_spline_error_t
 cds_spline3_remove_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex);
 
 CDS_SPLINE_DEF cds_spline_vec3
-cds_spline3_eval_pos(const cds_spline3 *spline, cds_spline_r32 t);
+cds_spline3_eval(const cds_spline3 *spline, cds_spline_r32 t);
 
 CDS_SPLINE_DEF cds_spline_vec3
-cds_spline3_eval_dpos(const cds_spline3 *spline, cds_spline_r32 t);
+cds_spline3_evald(const cds_spline3 *spline, cds_spline_r32 t);
 
 CDS_SPLINE_DEF cds_spline_vec3
-cds_spline3_eval_ddpos(const cds_spline3 *spline, cds_spline_r32 t);
+cds_spline3_evaldd(const cds_spline3 *spline, cds_spline_r32 t);
 
 #endif /*-------------- end header file ------------------------*/
 
@@ -553,7 +553,7 @@ cds_spline3_remove_knot(cds_spline3 *outSpline, cds_spline_s32 knotIndex) {
 }
 
 cds_spline_vec3
-cds_spline3_eval_pos(const cds_spline3 *spline, cds_spline_r32 t) {
+cds_spline3_eval(const cds_spline3 *spline, cds_spline_r32 t) {
     cds_spline_s32 segment;
     cds_spline_r32 u;
     cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
@@ -567,7 +567,7 @@ cds_spline3_eval_pos(const cds_spline3 *spline, cds_spline_r32 t) {
 }
 
 cds_spline_vec3
-cds_spline3_eval_dpos(const cds_spline3 *spline, cds_spline_r32 t) {
+cds_spline3_evald(const cds_spline3 *spline, cds_spline_r32 t) {
     cds_spline_s32 segment;
     cds_spline_r32 u;
     cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
@@ -581,7 +581,7 @@ cds_spline3_eval_dpos(const cds_spline3 *spline, cds_spline_r32 t) {
 }
 
 cds_spline_vec3
-cds_spline3_eval_ddpos(const cds_spline3 *spline, cds_spline_r32 t) {
+cds_spline3_evaldd(const cds_spline3 *spline, cds_spline_r32 t) {
     cds_spline_s32 segment;
     cds_spline_r32 u;
     cds_spline__get_int_and_frac(spline->numKnots, t, &segment, &u);
@@ -633,7 +633,7 @@ int main() {
     }
     for(iSamp=0; iSamp<=sampleCount; ++iSamp) {
         float u = (float)iSamp * (float)spline.numSegments / (float)sampleCount;
-        cds_spline_vec3 pos = cds_spline3_eval_pos(&spline, u);
+        cds_spline_vec3 pos = cds_spline3_eval(&spline, u);
         printf("u=%.3f pos=[%11.8f %11.8f]\n", u, pos.x, pos.y);
     }
 
