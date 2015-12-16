@@ -106,6 +106,12 @@ typedef union cds_spline_vec1 {
     };
     cds_spline_r32 elems[1];
 } cds_spline_vec1;
+CDS_SPLINE_INLINE cds_spline_vec1
+cds_spline_init_vec1(cds_spline_r32 x) {
+    cds_spline_vec1 v;
+    v.x = x;
+    return v;
+}
 
 typedef union cds_spline_vec2 {
     struct {
@@ -113,6 +119,13 @@ typedef union cds_spline_vec2 {
     };
     cds_spline_r32 elems[2];
 } cds_spline_vec2;
+CDS_SPLINE_INLINE cds_spline_vec2
+cds_spline_init_vec2(cds_spline_r32 x, cds_spline_r32 y) {
+    cds_spline_vec2 v;
+    v.x = x;
+    v.y = y;
+    return v;
+}
 
 typedef union cds_spline_vec3 {
     struct {
@@ -120,6 +133,14 @@ typedef union cds_spline_vec3 {
     };
     cds_spline_r32 elems[3];
 } cds_spline_vec3;
+CDS_SPLINE_INLINE cds_spline_vec3
+cds_spline_init_vec3(cds_spline_r32 x, cds_spline_r32 y, cds_spline_r32 z) {
+    cds_spline_vec3 v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    return v;
+}
 
 typedef union cds_spline_vec4 {
     struct {
@@ -127,6 +148,15 @@ typedef union cds_spline_vec4 {
     };
     cds_spline_r32 elems[4];
 } cds_spline_vec4;
+CDS_SPLINE_INLINE cds_spline_vec4
+cds_spline_init_vec4(cds_spline_r32 x, cds_spline_r32 y, cds_spline_r32 z, cds_spline_r32 w) {
+    cds_spline_vec4 v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    v.w = w;
+    return v;
+}
 
 extern union cds_spline_mat14;
 extern union cds_spline_mat24;
