@@ -128,49 +128,10 @@ typedef union cds_spline_vec4 {
     cds_spline_r32 elems[4];
 } cds_spline_vec4;
 
-typedef union cds_spline_mat14 {
-    struct {
-        cds_spline_r32 m00;
-        cds_spline_r32 m10;
-        cds_spline_r32 m20;
-        cds_spline_r32 m30;
-    };
-    cds_spline_vec1 rows[4];
-    cds_spline_r32 elems[4];
-} cds_spline_mat14;
-
-typedef union cds_spline_mat24 {
-    struct {
-        cds_spline_r32 m00,m01;
-        cds_spline_r32 m10,m11;
-        cds_spline_r32 m20,m21;
-        cds_spline_r32 m30,m31;
-    };
-    cds_spline_vec2 rows[4];
-    cds_spline_r32 elems[8];
-} cds_spline_mat24;
-
-typedef union cds_spline_mat34 {
-    struct {
-        cds_spline_r32 m00,m01,m02;
-        cds_spline_r32 m10,m11,m12;
-        cds_spline_r32 m20,m21,m22;
-        cds_spline_r32 m30,m31,m32;
-    };
-    cds_spline_vec3 rows[4];
-    cds_spline_r32 elems[12];
-} cds_spline_mat34;
-
-typedef union cds_spline_mat44 {
-    struct {
-        cds_spline_r32 m00,m01,m02,m03;
-        cds_spline_r32 m10,m11,m12,m13;
-        cds_spline_r32 m20,m21,m22,m23;
-        cds_spline_r32 m30,m31,m32,m33;
-    };
-    cds_spline_vec4 rows[4];
-    cds_spline_r32 elems[16];
-} cds_spline_mat44;
+extern union cds_spline_mat14;
+extern union cds_spline_mat24;
+extern union cds_spline_mat34;
+extern union cds_spline_mat44;
 #ifdef CDS_SPLINE_COMPILER_MSVC
 #   pragma warning(pop)
 #endif
@@ -216,7 +177,7 @@ typedef enum cds_spline_error_t {
 } cds_spline_error_t;
 
 typedef struct cds_spline3 {
-    cds_spline_mat34 *segmentMatrices;
+    union cds_spline_mat34 *segmentMatrices;
     cds_spline_interp_style interpStyle;
     cds_spline_r32 tension;
 
@@ -273,6 +234,57 @@ cds_spline3_evaldd(const cds_spline3 *spline, cds_spline_r32 t);
 
 #define CDS_SPLINE_MIN(x,y) ((x)<(y) ? (x) : (y))
 #define CDS_SPLINE_MAX(x,y) ((x)>(y) ? (x) : (y))
+
+#ifdef CDS_SPLINE_COMPILER_MSVC
+#   pragma warning(push)
+#   pragma warning(disable:4201) /* nameless struct/union */
+#endif
+typedef union cds_spline_mat14 {
+    struct {
+        cds_spline_r32 m00;
+        cds_spline_r32 m10;
+        cds_spline_r32 m20;
+        cds_spline_r32 m30;
+    };
+    cds_spline_vec1 rows[4];
+    cds_spline_r32 elems[4];
+} cds_spline_mat14;
+
+typedef union cds_spline_mat24 {
+    struct {
+        cds_spline_r32 m00,m01;
+        cds_spline_r32 m10,m11;
+        cds_spline_r32 m20,m21;
+        cds_spline_r32 m30,m31;
+    };
+    cds_spline_vec2 rows[4];
+    cds_spline_r32 elems[8];
+} cds_spline_mat24;
+
+typedef union cds_spline_mat34 {
+    struct {
+        cds_spline_r32 m00,m01,m02;
+        cds_spline_r32 m10,m11,m12;
+        cds_spline_r32 m20,m21,m22;
+        cds_spline_r32 m30,m31,m32;
+    };
+    cds_spline_vec3 rows[4];
+    cds_spline_r32 elems[12];
+} cds_spline_mat34;
+
+typedef union cds_spline_mat44 {
+    struct {
+        cds_spline_r32 m00,m01,m02,m03;
+        cds_spline_r32 m10,m11,m12,m13;
+        cds_spline_r32 m20,m21,m22,m23;
+        cds_spline_r32 m30,m31,m32,m33;
+    };
+    cds_spline_vec4 rows[4];
+    cds_spline_r32 elems[16];
+} cds_spline_mat44;
+#ifdef CDS_SPLINE_COMPILER_MSVC
+#   pragma warning(pop)
+#endif
 
 static CDS_SPLINE_INLINE cds_spline_r32
 cds_spline__roundf(cds_spline_r32 x) {
